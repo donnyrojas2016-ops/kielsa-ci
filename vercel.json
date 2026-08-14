@@ -1,6 +1,15 @@
 {
   "version": 2,
+  "headers": [
+    {
+      "source": "/app.js",
+      "headers": [
+        { "key": "Content-Type", "value": "application/javascript" }
+      ]
+    }
+  ],
   "routes": [
+    { "src": "/app.js", "dest": "/app.js" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
