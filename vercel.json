@@ -1,5 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/((?!bundle\\.js$).*)", "destination": "/index.html" }
-  ]
-}
