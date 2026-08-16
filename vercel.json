@@ -1,7 +1,0 @@
-{
-  "outputDirectory": ".",
-  "framework": null,
-  "rewrites": [
-    { "source": "/((?!app\\.js$|index\\.html$).*)", "destination": "/index.html" }
-  ]
-}
