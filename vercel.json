@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/((?!kielsa-app\\.js$|index\\.html$).*)", "destination": "/index.html" }
+  ]
+}
