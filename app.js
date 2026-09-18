@@ -20465,7 +20465,7 @@ eT() &&
     "⚠️  Node.js 20 and below are deprecated and will no longer be supported in future versions of @supabase/supabase-js. Please upgrade to Node.js 22 or later. For more information, visit: https://github.com/orgs/supabase/discussions/45715",
   );
 const Aa = Zb(
-  "https://jvithjvoyvxeljlectli.supabase.co",
+  "https://kielsa-ci.vercel.app/api/supabase",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2aXRoanZveXZ4ZWxqbGVjdGxpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MjE3NTksImV4cCI6MjA5NDA5Nzc1OX0.Rd6_TWzl7NI5XghIx-sTVFfYo0ynheT6O8H4QTwx7EQ",
 );
 /*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */ var pu = {};
