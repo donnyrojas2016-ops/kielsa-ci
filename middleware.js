@@ -12,7 +12,7 @@
 
 import { next } from '@vercel/functions';
 
-export default function middleware(request) {
+export default function middleware(request) {return next(); // TEMPORAL: bypass de Basic Auth a pedido de Donny (18-sep-2026). Para reactivar, borra esta línea.
   const expectedUser = process.env.SITE_USER;
   const expectedPass = process.env.SITE_PASS;
 
