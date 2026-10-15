@@ -46487,13 +46487,32 @@ const t6 = {
 async function Lr(e) {
   for (let intento = 0; intento < 3; intento++) {
     if (intento > 0) await new Promise((res) => setTimeout(res, 900 * intento));
-    const { data: t, error: r } = await Aa.from(e)
-      .select(e === "usuarios" ? "id,usuario,nombre,estado" : "*")
-      .order("id");
-    if (!r) return t.map(e2);
-    if (intento < 2)
-      console.warn("Reintentando carga de " + e + " (fallo intento " + (intento + 1) + "): " + (r.message || r));
-    else console.error("No se pudo cargar " + e + " tras 3 intentos:", r);
+    try {
+      // Supabase/PostgREST solo devuelve un maximo de filas por peticion
+      // (por defecto 1000) si no se pide explicitamente un rango mayor.
+      // Para tablas que ya superan ese limite (como planes_trabajo, que
+      // crece cada mes), hay que paginar con .range() hasta traer todo;
+      // de lo contrario las filas mas nuevas (ids mas altos) simplemente
+      // no llegan a la app, sin ningun error visible.
+      const PAGINA = 1000;
+      let desde = 0,
+        todas = [];
+      for (;;) {
+        const { data: t, error: r } = await Aa.from(e)
+          .select(e === "usuarios" ? "id,usuario,nombre,estado" : "*")
+          .order("id")
+          .range(desde, desde + PAGINA - 1);
+        if (r) throw r;
+        todas = todas.concat(t || []);
+        if (!t || t.length < PAGINA) break;
+        desde += PAGINA;
+      }
+      return todas.map(e2);
+    } catch (r) {
+      if (intento < 2)
+        console.warn("Reintentando carga de " + e + " (fallo intento " + (intento + 1) + "): " + (r.message || r));
+      else console.error("No se pudo cargar " + e + " tras 3 intentos:", r);
+    }
   }
   return [];
 }
