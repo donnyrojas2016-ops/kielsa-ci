@@ -46485,10 +46485,17 @@ const t6 = {
     proyectos: "proyectos",
   };
 async function Lr(e) {
-  const { data: t, error: r } = await Aa.from(e)
-    .select(e === "usuarios" ? "id,usuario,nombre,estado" : "*")
-    .order("id");
-  return r ? (console.error(e, r), []) : t.map(e2);
+  for (let intento = 0; intento < 3; intento++) {
+    if (intento > 0) await new Promise((res) => setTimeout(res, 900 * intento));
+    const { data: t, error: r } = await Aa.from(e)
+      .select(e === "usuarios" ? "id,usuario,nombre,estado" : "*")
+      .order("id");
+    if (!r) return t.map(e2);
+    if (intento < 2)
+      console.warn("Reintentando carga de " + e + " (fallo intento " + (intento + 1) + "): " + (r.message || r));
+    else console.error("No se pudo cargar " + e + " tras 3 intentos:", r);
+  }
+  return [];
 }
 async function s6(e, t) {
   const r = i6(t),
