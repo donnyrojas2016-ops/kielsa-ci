@@ -60103,4 +60103,29 @@ function V6({
             c.jsxs("div", {
               style: { display: "flex", gap: 8 },
               children: [
-                c.jsx(Te, { onClick: n, children: "C
+                c.jsx(Te, { onClick: n, children: "Cancelar" }),
+                c.jsxs(Te, {
+                  primary: !0,
+                  disabled: m || h.filter((O) => O.titulo.trim()).length === 0,
+                  onClick: C,
+                  children: [
+                    c.jsx("i", { className: "ti ti-check" }),
+                    " ",
+                    m
+                      ? "Guardando..."
+                      : "Guardar " +
+                        h.filter((O) => O.titulo.trim()).length +
+                        " hallazgo(s)",
+                  ],
+                }),
+              ],
+            }),
+          ],
+        }),
+      ],
+    }),
+  });
+}
+Zf.createRoot(document.getElementById("root")).render(
+  c.jsx(I2.StrictMode, { children: c.jsx(u6, {}) }),
+);
