@@ -49317,10 +49317,41 @@ function y6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
                                 style: { padding: w ? "4px 10px" : "8px 10px" },
                                 children: w
                                   ? c.jsx("div", {
-                                      style: { fontSize: 10, color: y.text2 },
-                                      children: (_.paisIds || [])
-                                        .map((m) => Ze(i(m)))
-                                        .join(" "),
+                                      style: {
+                                        display: "flex",
+                                        flexWrap: "wrap",
+                                        gap: "2px 6px",
+                                        fontSize: 10,
+                                        color: y.text2,
+                                      },
+                                      children: (_.paisIds || []).map((m) =>
+                                        c.jsxs(
+                                          "span",
+                                          {
+                                            style: { whiteSpace: "nowrap" },
+                                            title: i(m),
+                                            children: [
+                                              Ze(i(m)),
+                                              k[m]
+                                                ? c.jsxs("span", {
+                                                    style: {
+                                                      color: y.primary,
+                                                      fontWeight: 600,
+                                                    },
+                                                    children: [
+                                                      "→",
+                                                      a(k[m]).split(" ")[0],
+                                                    ],
+                                                  })
+                                                : c.jsx("span", {
+                                                    style: { color: y.danger },
+                                                    children: " (sin auditor)",
+                                                  }),
+                                            ],
+                                          },
+                                          m,
+                                        ),
+                                      ),
                                     })
                                   : c.jsx("div", {
                                       style: {
@@ -49342,18 +49373,22 @@ function y6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
                                               c.jsxs("span", {
                                                 children: [Ze(i(m)), " ", i(m)],
                                               }),
-                                              k[m] &&
-                                                c.jsxs("span", {
-                                                  style: {
-                                                    color: y.primary,
-                                                    fontWeight: 600,
-                                                    fontSize: 10,
-                                                  },
-                                                  children: [
-                                                    "→ ",
-                                                    a(k[m]).split(" ")[0],
-                                                  ],
-                                                }),
+                                              k[m]
+                                                ? c.jsxs("span", {
+                                                    style: {
+                                                      color: y.primary,
+                                                      fontWeight: 600,
+                                                      fontSize: 10,
+                                                    },
+                                                    children: ["→ ", a(k[m])],
+                                                  })
+                                                : c.jsx("span", {
+                                                    style: {
+                                                      color: y.danger,
+                                                      fontSize: 10,
+                                                    },
+                                                    children: "→ sin auditor",
+                                                  }),
                                             ],
                                           },
                                           m,
