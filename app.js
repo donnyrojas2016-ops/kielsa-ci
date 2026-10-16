@@ -55010,7 +55010,7 @@ function InformeActividadModal({
   return c.jsxs(Wa, {
     title: "Enviar informe — " + nombreProceso,
     onClose: cerrar,
-    wide: !0,
+    extraWide: !0,
     children: [
       c.jsxs("div", {
         style: {
