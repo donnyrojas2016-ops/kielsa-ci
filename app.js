@@ -54679,6 +54679,170 @@ function C6({
     ],
   });
 }
+async function generarInformeActividadPDF(e, t, r, n, i, a) {
+  if (!window.jspdf) {
+    alert("Librería PDF no cargada. Recarga la página.");
+    return;
+  }
+  const { jsPDF: o } = window.jspdf,
+    l = new o({ orientation: "portrait", unit: "mm", format: "letter" }),
+    u = l.internal.pageSize.getWidth(),
+    f = l.internal.pageSize.getHeight(),
+    d = [30, 58, 138],
+    p = [59, 130, 246],
+    g = [100, 116, 139],
+    x = [248, 250, 252],
+    w = new Date().toLocaleDateString("es-HN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }),
+    b = (I, K) => l.splitTextToSize(I ? String(I) : "—", K),
+    nombrePais = n(e.paisId),
+    nombreProceso = a(e.procesoId),
+    nombreAuditor = i(e.auditorId);
+  (l.setFillColor(...d),
+    l.rect(0, 0, u, 34, "F"),
+    l.setFillColor(255, 255, 255),
+    l.roundedRect(10, 6, 34, 22, 2, 2, "F"),
+    l.setTextColor(...d),
+    l.setFontSize(7),
+    l.setFont("helvetica", "bold"),
+    l.text("KIELSA", 27, 16, { align: "center" }),
+    l.text("FARMACÉUTICA", 27, 21, { align: "center" }),
+    l.setFontSize(6),
+    l.setFont("helvetica", "normal"),
+    l.text("Control Interno", 27, 26, { align: "center" }),
+    l.setTextColor(255, 255, 255),
+    l.setFontSize(17),
+    l.setFont("helvetica", "bold"),
+    l.text("Informe de Seguimiento de Proceso", 50, 16),
+    l.setFontSize(9),
+    l.setFont("helvetica", "normal"),
+    l.text("Dirección de Control Interno · Kielsa Farmacéutica", 50, 23),
+    l.setFontSize(8),
+    l.text("Emisión: " + w, u - 12, 16, { align: "right" }),
+    l.text("Ref. PT-" + (e.id || ""), u - 12, 23, { align: "right" }));
+  let S = 42;
+  (l.setFillColor(...x),
+    l.rect(10, S, u - 20, 26, "F"),
+    l.setDrawColor(220, 232, 248),
+    l.setLineWidth(0.3),
+    l.rect(10, S, u - 20, 26, "S"),
+    l.setTextColor(...g),
+    l.setFontSize(7),
+    l.setFont("helvetica", "normal"),
+    l.text(nombrePais + " · Plan de Trabajo", 14, S + 7),
+    l.setTextColor(...d),
+    l.setFontSize(13),
+    l.setFont("helvetica", "bold"),
+    l.text(b(nombreProceso, u - 28), 14, S + 14),
+    l.setTextColor(...g),
+    l.setFontSize(8),
+    l.setFont("helvetica", "normal"),
+    l.text(
+      "Auditor: " +
+        nombreAuditor +
+        "   ·   País: " +
+        nombrePais +
+        "   ·   Fecha: " +
+        (e.fechaProgramada || ""),
+      14,
+      S + 23,
+    ),
+    (S += 32));
+  (l.setTextColor(...d),
+    l.setFontSize(9),
+    l.setFont("helvetica", "bold"),
+    l.text("Observaciones del auditor", 10, S),
+    l.setDrawColor(...p),
+    l.setLineWidth(0.4),
+    l.line(10, S + 1.5, u - 10, S + 1.5),
+    (S += 7));
+  const lineasTexto = b(t || "Sin observaciones registradas.", u - 28),
+    altoTexto = Math.max(lineasTexto.length * 4.8 + 12, 20);
+  (S > f - 50 && (l.addPage(), (S = 20)),
+    l.setFillColor(239, 246, 255),
+    l.rect(10, S, u - 20, altoTexto, "F"),
+    l.setFillColor(...d),
+    l.rect(10, S, 4, altoTexto, "F"),
+    l.setTextColor(30, 41, 59),
+    l.setFontSize(9),
+    l.setFont("helvetica", "normal"),
+    l.text(lineasTexto, 16, S + 8),
+    (S += altoTexto + 8));
+  const imagenEv = (r || []).find((ev) =>
+    /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(ev.name || ev.url || ""),
+  );
+  if (imagenEv)
+    try {
+      const resp = await fetch(imagenEv.url),
+        blob = await resp.blob(),
+        dataUrl = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          ((reader.onload = () => res(reader.result)),
+            (reader.onerror = rej),
+            reader.readAsDataURL(blob));
+        }),
+        dims = await new Promise((res, rej) => {
+          const img = new Image();
+          ((img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight })),
+            (img.onerror = rej),
+            (img.src = dataUrl));
+        }),
+        formato = /jpe?g/i.test(blob.type) ? "JPEG" : "PNG",
+        anchoMax = u - 20,
+        altoMax = f - 60;
+      let wImg = anchoMax,
+        hImg = (dims.h / dims.w) * wImg;
+      hImg > altoMax && ((hImg = altoMax), (wImg = (dims.w / dims.h) * hImg));
+      (S + hImg + 10 > f - 12 && (l.addPage(), (S = 20)),
+        l.setTextColor(...d),
+        l.setFontSize(9),
+        l.setFont("helvetica", "bold"),
+        l.text("Evidencia fotográfica", 10, S),
+        l.setDrawColor(...p),
+        l.setLineWidth(0.4),
+        l.line(10, S + 1.5, u - 10, S + 1.5),
+        (S += 7),
+        l.addImage(dataUrl, formato, 10 + (anchoMax - wImg) / 2, S, wImg, hImg),
+        (S += hImg + 8));
+    } catch (err) {
+      (l.setTextColor(153, 27, 27),
+        l.setFontSize(8),
+        l.setFont("helvetica", "normal"),
+        l.text(
+          b(
+            "No se pudo incrustar la imagen de evidencia (" +
+              (err.message || "error") +
+              "). Enlace: " +
+              imagenEv.url,
+            u - 20,
+          ),
+          10,
+          S,
+        ),
+        (S += 14));
+    }
+  const O = l.internal.getNumberOfPages();
+  for (let I = 1; I <= O; I++)
+    (l.setPage(I),
+      l.setFillColor(...x),
+      l.rect(0, f - 10, u, 10, "F"),
+      l.setDrawColor(...p),
+      l.setLineWidth(0.3),
+      l.line(0, f - 10, u, f - 10),
+      l.setTextColor(...g),
+      l.setFontSize(7),
+      l.setFont("helvetica", "normal"),
+      l.text(
+        "© Kielsa Farmacéutica · Sistema de Control Interno · © Donny Rojas · Confidencial",
+        12,
+        f - 4,
+      ),
+      l.text("Pág. " + I + " / " + O, u - 12, f - 4, { align: "right" }));
+  l.save("KielsaCI_Seguimiento_" + (e.id || "") + "_" + fn() + ".pdf");
+}
 function InformeActividadModal({
   item: itemActividad,
   db: dbState,
@@ -54689,10 +54853,20 @@ function InformeActividadModal({
   onSave: guardar,
   onClose: cerrar,
 }) {
-  const [texto, setTexto] = ke.useState(itemActividad.observacion || ""),
+  const [texto, setTexto] = ke.useState(
+      itemActividad.observacion ||
+        "Buen día:\n\nEnvío seguimiento de " +
+          procesoNombre(itemActividad.procesoId) +
+          " (" +
+          paisNombre(itemActividad.paisId) +
+          ") correspondiente al " +
+          (itemActividad.fechaProgramada || "") +
+          ".\n\n",
+    ),
     [enviando, setEnviando] = ke.useState(!1),
     [copiado, setCopiado] = ke.useState(null),
     [subiendoImagen, setSubiendoImagen] = ke.useState(!1),
+    [generandoPdf, setGenerandoPdf] = ke.useState(!1),
     [evidencias, setEvidencias] = ke.useState(() => {
       try {
         const arr = itemActividad.evidencia
@@ -54757,20 +54931,28 @@ function InformeActividadModal({
     imagenEvidencia = evidencias.find((ev) =>
       /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(ev.name || ev.url || ""),
     ),
-    copiarImagenAlPortapapeles = async (url) => {
-      const resp = await fetch(url),
-        blobOriginal = await resp.blob();
-      let pngBlob = blobOriginal;
-      if (blobOriginal.type !== "image/png") {
-        const bitmap = await createImageBitmap(blobOriginal),
-          canvas = document.createElement("canvas");
-        ((canvas.width = bitmap.width), (canvas.height = bitmap.height));
-        canvas.getContext("2d").drawImage(bitmap, 0, 0);
-        pngBlob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+    descargarPDF = async () => {
+      setGenerandoPdf(!0);
+      try {
+        (await guardar("plan_trabajo", itemActividad.id, {
+          ...itemActividad,
+          observacion: texto,
+        }),
+          await generarInformeActividadPDF(
+            itemActividad,
+            texto,
+            evidencias,
+            paisNombre,
+            auditorNombre,
+            procesoNombre,
+          ),
+          setCopiado(
+            "PDF descargado. Adjúntalo a tu correo en Outlook antes de enviarlo.",
+          ));
+      } catch (err) {
+        alert("Error al generar el PDF: " + err.message);
       }
-      await navigator.clipboard.write([
-        new ClipboardItem({ "image/png": pngBlob }),
-      ]);
+      setGenerandoPdf(!1);
     },
     enviarInforme = async () => {
       if (!destPara.length) {
@@ -54781,19 +54963,11 @@ function InformeActividadModal({
       }
       setEnviando(!0);
       setCopiado(null);
-      let imagenCopiada = !1;
       try {
         await guardar("plan_trabajo", itemActividad.id, {
           ...itemActividad,
           observacion: texto,
         });
-        if (imagenEvidencia)
-          try {
-            (await copiarImagenAlPortapapeles(imagenEvidencia.url),
-              (imagenCopiada = !0));
-          } catch {
-            imagenCopiada = !1;
-          }
         const asunto =
             "Seguimiento de " +
             nombreProceso +
@@ -54801,19 +54975,7 @@ function InformeActividadModal({
             nombrePais +
             " — " +
             (itemActividad.fechaProgramada || ""),
-          lineas = [
-            "Buen día:",
-            "",
-            "Envío seguimiento de " +
-              nombreProceso +
-              " (" +
-              nombrePais +
-              ") correspondiente al " +
-              (itemActividad.fechaProgramada || "") +
-              ".",
-            "",
-            texto || "(sin observaciones)",
-          ];
+          lineas = (texto || "(sin observaciones)").split("\n");
         evidencias.length &&
           (lineas.push(""),
           lineas.push("Evidencia:"),
@@ -54822,9 +54984,7 @@ function InformeActividadModal({
           ),
           lineas.push(
             "",
-            imagenCopiada
-              ? "(Ya copié la imagen a tu portapapeles — pégala aquí arriba con Ctrl+V)."
-              : "(Para que la imagen se vea aquí arriba en el correo: abre el enlace, clic derecho sobre la imagen → Copiar imagen, y pégala con Ctrl+V justo debajo de este texto).",
+            'Adjunta a este correo el PDF del informe (botón "Descargar informe PDF") antes de enviarlo, para que la imagen se vea correctamente.',
           ));
         lineas.push(
           "",
@@ -54842,11 +55002,9 @@ function InformeActividadModal({
             encodeURIComponent(cuerpo);
         (window.location.href = mailto,
           setCopiado(
-            imagenCopiada
-              ? "Imagen copiada al portapapeles — ve a Outlook y pégala con Ctrl+V."
-              : imagenEvidencia
-                ? "No se pudo copiar la imagen automáticamente (tu navegador bloqueó el acceso al portapapeles). Ábrela desde el enlace del correo y cópiala manualmente."
-                : null,
+            imagenEvidencia
+              ? "Se abrió Outlook con el borrador. No olvides adjuntar el PDF descargado antes de enviar."
+              : "Se abrió Outlook con el borrador del correo.",
           ));
       } catch (err) {
         alert("Error: " + err.message);
@@ -55001,17 +55159,20 @@ function InformeActividadModal({
         children: [
           c.jsx(Te, { onClick: cerrar, children: "Cancelar" }),
           c.jsxs(Te, {
+            onClick: descargarPDF,
+            disabled: generandoPdf,
+            children: [
+              c.jsx("i", { className: "ti ti-file-type-pdf" }),
+              " " + (generandoPdf ? "Generando..." : "Descargar informe PDF"),
+            ],
+          }),
+          c.jsxs(Te, {
             primary: !0,
             onClick: enviarInforme,
             disabled: enviando,
             children: [
               c.jsx("i", { className: "ti ti-mail-forward" }),
-              " " +
-                (enviando
-                  ? "Procesando..."
-                  : imagenEvidencia
-                    ? "Copiar imagen y abrir Outlook"
-                    : "Abrir en Outlook"),
+              " " + (enviando ? "Procesando..." : "Abrir en Outlook"),
             ],
           }),
         ],
