@@ -54594,12 +54594,16 @@ function C6({
                                     children: c.jsxs("div", {
                                       style: { display: "flex", gap: 3 },
                                       children: [
-                                        c.jsx(Te, {
+                                        c.jsxs(Te, {
                                           sm: !0,
+                                          title: "Redactar informe",
                                           onClick: () => v(ee),
-                                          children: c.jsx("i", {
-                                            className: "ti ti-mail",
-                                          }),
+                                          children: [
+                                            c.jsx("i", {
+                                              className: "ti ti-edit",
+                                            }),
+                                            " Redactar",
+                                          ],
                                         }),
                                         a &&
                                           c.jsx(Te, {
@@ -54676,7 +54680,7 @@ function C6({
     ],
   });
 }
-async function generarInformeActividadPDF(e, t, r, n, i, a) {
+async function generarInformeActividadPDF(e, revTexto, resTexto, r, n, i, a) {
   if (!window.jspdf) {
     alert("Librería PDF no cargada. Recarga la página.");
     return;
@@ -54750,23 +54754,41 @@ async function generarInformeActividadPDF(e, t, r, n, i, a) {
   (l.setTextColor(...d),
     l.setFontSize(9),
     l.setFont("helvetica", "bold"),
-    l.text("Observaciones del auditor", 10, S),
+    l.text("Detalle del seguimiento", 10, S),
     l.setDrawColor(...p),
     l.setLineWidth(0.4),
     l.line(10, S + 1.5, u - 10, S + 1.5),
     (S += 7));
-  const lineasTexto = b(t || "Sin observaciones registradas.", u - 28),
-    altoTexto = Math.max(lineasTexto.length * 4.8 + 12, 20);
-  (S > f - 50 && (l.addPage(), (S = 20)),
-    l.setFillColor(239, 246, 255),
-    l.rect(10, S, u - 20, altoTexto, "F"),
-    l.setFillColor(...d),
-    l.rect(10, S, 4, altoTexto, "F"),
-    l.setTextColor(30, 41, 59),
-    l.setFontSize(9),
-    l.setFont("helvetica", "normal"),
-    l.text(lineasTexto, 16, S + 8),
-    (S += altoTexto + 8));
+  const E = (I, K, oe, te, V) => {
+    S > f - 50 && (l.addPage(), (S = 20));
+    const ne = b(oe || "No registrado", u - 52),
+      X = Math.max(ne.length * 4.5 + 14, 18);
+    (l.setFillColor(...te),
+      l.rect(10, S, u - 20, X, "F"),
+      l.setFillColor(...d),
+      l.rect(10, S, 4, X, "F"),
+      l.setTextColor(...d),
+      l.setFontSize(7),
+      l.setFont("helvetica", "bold"),
+      l.text(I, 16, S + 6),
+      l.setTextColor(...V),
+      l.setFontSize(8.5),
+      l.setFont("helvetica", "bold"),
+      l.text(K, 24, S + 6),
+      l.setTextColor(30, 41, 59),
+      l.setFontSize(8),
+      l.setFont("helvetica", "normal"),
+      l.text(ne, 24, S + 12),
+      (S += X + 6));
+  };
+  (E("1.", "REVISIÓN REALIZADA", revTexto, [239, 246, 255], [29, 78, 216]),
+    E(
+      "2.",
+      "RESULTADO / OBSERVACIONES",
+      resTexto,
+      [240, 253, 244],
+      [22, 101, 52],
+    ));
   const imagenEv = (r || []).find((ev) =>
     /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(ev.name || ev.url || ""),
   );
@@ -54839,6 +54861,38 @@ async function generarInformeActividadPDF(e, t, r, n, i, a) {
       l.text("Pág. " + I + " / " + O, u - 12, f - 4, { align: "right" }));
   l.save("KielsaCI_Seguimiento_" + (e.id || "") + "_" + fn() + ".pdf");
 }
+const MARCA_REVISION_PT = "REVISIÓN REALIZADA:",
+  MARCA_RESULTADO_PT = "RESULTADO / OBSERVACIONES:",
+  parsearObservacionActividad = (texto) => {
+    if (!texto) return { revision: "", resultado: "" };
+    const iRev = texto.indexOf(MARCA_REVISION_PT),
+      iRes = texto.indexOf(MARCA_RESULTADO_PT);
+    if (iRev === -1 && iRes === -1) return { revision: "", resultado: texto };
+    let revision = "",
+      resultado = "";
+    return (
+      iRev !== -1 &&
+        (revision = texto
+          .slice(
+            iRev + MARCA_REVISION_PT.length,
+            iRes !== -1 ? iRes : undefined,
+          )
+          .trim()),
+      iRes !== -1 &&
+        (resultado = texto.slice(iRes + MARCA_RESULTADO_PT.length).trim()),
+      { revision, resultado }
+    );
+  },
+  combinarObservacionActividad = (revision, resultado) => {
+    const partes = [];
+    return (
+      (revision || "").trim() &&
+        partes.push(MARCA_REVISION_PT + "\n" + revision.trim()),
+      (resultado || "").trim() &&
+        partes.push(MARCA_RESULTADO_PT + "\n" + resultado.trim()),
+      partes.join("\n\n")
+    );
+  };
 function InformeActividadModal({
   item: itemActividad,
   db: dbState,
@@ -54849,16 +54903,20 @@ function InformeActividadModal({
   onSave: guardar,
   onClose: cerrar,
 }) {
-  const [texto, setTexto] = ke.useState(
-      itemActividad.observacion ||
-        "Buen día:\n\nEnvío seguimiento de " +
-          procesoNombre(itemActividad.procesoId) +
-          " (" +
-          paisNombre(itemActividad.paisId) +
-          ") correspondiente al " +
-          (itemActividad.fechaProgramada || "") +
-          ".\n\n",
+  const parsedoPT = parsearObservacionActividad(itemActividad.observacion),
+    [revision, setRevision] = ke.useState(
+      parsedoPT.revision ||
+        (itemActividad.observacion
+          ? ""
+          : "Se revisó el proceso de " +
+            procesoNombre(itemActividad.procesoId) +
+            " (" +
+            paisNombre(itemActividad.paisId) +
+            ") correspondiente al " +
+            (itemActividad.fechaProgramada || "") +
+            "."),
     ),
+    [resultado, setResultado] = ke.useState(parsedoPT.resultado || ""),
     [enviando, setEnviando] = ke.useState(!1),
     [copiado, setCopiado] = ke.useState(null),
     [subiendoImagen, setSubiendoImagen] = ke.useState(!1),
@@ -54927,16 +54985,18 @@ function InformeActividadModal({
     imagenEvidencia = evidencias.find((ev) =>
       /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(ev.name || ev.url || ""),
     ),
+    textoCombinado = combinarObservacionActividad(revision, resultado),
     descargarPDF = async () => {
       setGenerandoPdf(!0);
       try {
         (await guardar("plan_trabajo", itemActividad.id, {
           ...itemActividad,
-          observacion: texto,
+          observacion: textoCombinado,
         }),
           await generarInformeActividadPDF(
             itemActividad,
-            texto,
+            revision,
+            resultado,
             evidencias,
             paisNombre,
             auditorNombre,
@@ -54962,7 +55022,7 @@ function InformeActividadModal({
       try {
         await guardar("plan_trabajo", itemActividad.id, {
           ...itemActividad,
-          observacion: texto,
+          observacion: textoCombinado,
         });
         const asunto =
             "Seguimiento de " +
@@ -54971,7 +55031,15 @@ function InformeActividadModal({
             nombrePais +
             " — " +
             (itemActividad.fechaProgramada || ""),
-          lineas = (texto || "(sin observaciones)").split("\n");
+          lineas = [
+            "Buen día:",
+            "",
+            "Revisión realizada:",
+            revision || "(sin detalle)",
+            "",
+            "Resultado / Observaciones:",
+            resultado || "(sin detalle)",
+          ];
         evidencias.length &&
           (lineas.push(""),
           lineas.push("Evidencia:"),
@@ -55036,25 +55104,73 @@ function InformeActividadModal({
           }),
         ],
       }),
-      c.jsx(me, {
-        label: "Texto del informe",
-        children: c.jsx("textarea", {
-          value: texto,
-          onChange: (v) => setTexto(v.target.value),
-          onPaste: manejarPegado,
-          rows: 6,
-          style: {
-            width: "100%",
-            padding: 8,
-            border: "1px solid " + y.border2,
-            borderRadius: 6,
-            fontFamily: "inherit",
-            fontSize: 13,
-            resize: "vertical",
-          },
-          placeholder:
-            "Escribe el resumen de la revisión... (puedes pegar aquí una captura de pantalla con Ctrl+V y se adjunta sola como evidencia)",
-        }),
+      c.jsxs("div", {
+        style: {
+          background: "#eff6ff",
+          border: "1px solid #bfdbfe",
+          borderRadius: 10,
+          padding: "0.85rem 1rem",
+          marginBottom: 14,
+        },
+        children: [
+          c.jsxs("div", {
+            style: {
+              fontSize: 12,
+              fontWeight: 700,
+              color: "#1e40af",
+              marginBottom: 12,
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
+            },
+            children: [
+              c.jsx("i", { className: "ti ti-list-check" }),
+              " Detalle del seguimiento",
+            ],
+          }),
+          c.jsx(me, {
+            label: "1. Revisión realizada — qué se hizo",
+            children: c.jsx("textarea", {
+              value: revision,
+              onChange: (v) => setRevision(v.target.value),
+              onPaste: manejarPegado,
+              rows: 4,
+              style: {
+                width: "100%",
+                padding: 8,
+                border: "1px solid " + y.border2,
+                borderRadius: 6,
+                fontFamily: "monospace",
+                fontSize: 13,
+                lineHeight: 1.6,
+                resize: "vertical",
+              },
+              placeholder:
+                "Ej. Se revisó el cierre diario de CXC del 16/10/2026 en el sistema...",
+            }),
+          }),
+          c.jsx(me, {
+            label: "2. Resultado / Observaciones — qué se encontró",
+            children: c.jsx("textarea", {
+              value: resultado,
+              onChange: (v) => setResultado(v.target.value),
+              onPaste: manejarPegado,
+              rows: 4,
+              style: {
+                width: "100%",
+                padding: 8,
+                border: "1px solid " + y.border2,
+                borderRadius: 6,
+                fontFamily: "monospace",
+                fontSize: 13,
+                lineHeight: 1.6,
+                resize: "vertical",
+              },
+              placeholder:
+                "Ej. El cierre se realizó dentro del plazo, sin inconsistencias... (puedes pegar aquí una captura de pantalla con Ctrl+V y se adjunta sola como evidencia)",
+            }),
+          }),
+        ],
       }),
       subiendoImagen &&
         c.jsxs("div", {
