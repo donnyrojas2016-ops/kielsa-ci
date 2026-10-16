@@ -54692,7 +54692,8 @@ function InformeActividadModal({
   const [texto, setTexto] = ke.useState(itemActividad.observacion || ""),
     [enviando, setEnviando] = ke.useState(!1),
     [copiado, setCopiado] = ke.useState(null),
-    evidencias = (() => {
+    [subiendoImagen, setSubiendoImagen] = ke.useState(!1),
+    [evidencias, setEvidencias] = ke.useState(() => {
       try {
         const arr = itemActividad.evidencia
           ? JSON.parse(itemActividad.evidencia)
@@ -54701,7 +54702,44 @@ function InformeActividadModal({
       } catch {
         return [];
       }
-    })(),
+    }),
+    manejarPegado = async (ev) => {
+      const items = Array.from(
+          (ev.clipboardData && ev.clipboardData.items) || [],
+        ),
+        imgItem = items.find((it) => it.type && it.type.startsWith("image/"));
+      if (!imgItem) return;
+      ev.preventDefault();
+      const archivo = imgItem.getAsFile();
+      if (!archivo) return;
+      setSubiendoImagen(!0);
+      try {
+        const ext = (archivo.type.split("/")[1] || "png").replace(
+            "jpeg",
+            "jpg",
+          ),
+          ruta =
+            "pt-" + itemActividad.id + "-" + Date.now() + "." + ext,
+          { error } = await Aa.storage
+            .from("evidencias")
+            .upload(ruta, archivo, { upsert: !0 });
+        if (error) throw error;
+        const { data } = Aa.storage.from("evidencias").getPublicUrl(ruta),
+          nuevaEvidencia = {
+            name: "captura-" + Date.now() + "." + ext,
+            url: data.publicUrl,
+          },
+          nuevas = [...evidencias, nuevaEvidencia];
+        (setEvidencias(nuevas),
+          await guardar("plan_trabajo", itemActividad.id, {
+            ...itemActividad,
+            evidencia: JSON.stringify(nuevas),
+          }));
+      } catch (err) {
+        alert("Error al subir la imagen pegada: " + err.message);
+      }
+      setSubiendoImagen(!1);
+    },
     destActivos = (dbState.informe_destinatarios || []).filter(
       (d) => d.activo !== false,
     ),
@@ -54849,6 +54887,7 @@ function InformeActividadModal({
         children: c.jsx("textarea", {
           value: texto,
           onChange: (v) => setTexto(v.target.value),
+          onPaste: manejarPegado,
           rows: 6,
           style: {
             width: "100%",
@@ -54859,9 +54898,25 @@ function InformeActividadModal({
             fontSize: 13,
             resize: "vertical",
           },
-          placeholder: "Escribe el resumen de la revisión...",
+          placeholder:
+            "Escribe el resumen de la revisión... (puedes pegar aquí una captura de pantalla con Ctrl+V y se adjunta sola como evidencia)",
         }),
       }),
+      subiendoImagen &&
+        c.jsxs("div", {
+          style: {
+            fontSize: 11,
+            color: y.primary,
+            marginBottom: 8,
+            display: "flex",
+            alignItems: "center",
+            gap: 4,
+          },
+          children: [
+            c.jsx("i", { className: "ti ti-upload" }),
+            "Subiendo imagen pegada...",
+          ],
+        }),
       evidencias.length > 0 &&
         c.jsxs("div", {
           style: { marginBottom: 12 },
