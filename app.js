@@ -46470,6 +46470,8 @@ const t6 = {
     areas: "areas",
     responsable: "responsables",
     responsables: "responsables",
+    destinatario: "informe_destinatarios",
+    destinatarios: "informe_destinatarios",
     proceso: "procesos",
     procesos: "procesos",
     hallazgo: "hallazgos",
@@ -46865,7 +46867,7 @@ function u6() {
     m = ke.useCallback(async (H = !1) => {
       H || a(!0);
       try {
-        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr] =
+        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd] =
           await Promise.all([
             Lr("usuarios"),
             Lr("paises"),
@@ -46879,6 +46881,7 @@ function u6() {
             Lr("comentarios"),
             Lr("historial_hallazgos"),
             Lr("proyectos"),
+            Lr("informe_destinatarios"),
           ]);
         n({
           usuarios: G,
@@ -46893,6 +46896,7 @@ function u6() {
           comentarios: ht,
           historial: br,
           proyectos: Jr,
+          informe_destinatarios: pd,
         });
       } catch (G) {
         console.error(G);
@@ -47194,6 +47198,16 @@ function u6() {
                 },
               ]
             : []),
+          ...(V
+            ? [
+                {
+                  id: "destinatarios",
+                  ic: "ti-mail",
+                  lb: "Destinatarios Informe",
+                  color: "#0ea5e9",
+                },
+              ]
+            : []),
           ...(F("procesos")
             ? [
                 {
@@ -47279,6 +47293,7 @@ function u6() {
       auditores: "Auditores",
       areas: "Áreas",
       responsables: "Responsables",
+      destinatarios: "Destinatarios Informe",
       procesos: "Procesos",
       hallazgos: "Hallazgos",
       planes: "Plan de Acción",
@@ -47786,6 +47801,19 @@ function u6() {
                   arN: C,
                   pC: (H) =>
                     r.planes.filter((G) => G.responsableId === H).length,
+                }),
+              s === "destinatarios" &&
+                c.jsx(InformeDestinatariosPage, {
+                  db: r,
+                  oE: (H) => d({ t: "destinatario", id: H }),
+                  oD: (H, G) =>
+                    d({
+                      t: "_del",
+                      table: "informe_destinatarios",
+                      id: H,
+                      name: G,
+                    }),
+                  isAdmin: V,
                 }),
               s === "procesos" &&
                 c.jsx(y6, {
@@ -48998,6 +49026,121 @@ function m6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, arN: a, pC: s }) {
                   o.id,
                 ),
               ),
+            }),
+          ],
+        }),
+      }),
+    ],
+  });
+}
+function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
+  const l = e.informe_destinatarios || [];
+  return c.jsxs(wt, {
+    children: [
+      c.jsx(Bt, {
+        left: l.length + " destinatarios de informe",
+        icon: "ti-mail",
+        right:
+          n &&
+          c.jsxs(Te, {
+            primary: !0,
+            onClick: () => t(null),
+            children: [
+              c.jsx("i", { className: "ti ti-plus" }),
+              " Agregar destinatario",
+            ],
+          }),
+      }),
+      c.jsx("div", {
+        style: { padding: "8px 14px", fontSize: 11.5, color: y.text3 },
+        children:
+          'Esta lista se usa para armar el correo cuando un auditor envía un informe desde Plan de Trabajo. "Para" son los destinatarios principales y "CC" los que van en copia. Solo se incluyen los marcados como Activo.',
+      }),
+      c.jsx("div", {
+        style: { overflowX: "auto" },
+        children: c.jsxs("table", {
+          style: { width: "100%", borderCollapse: "collapse" },
+          children: [
+            c.jsx("thead", {
+              children: c.jsxs("tr", {
+                children: [
+                  c.jsx(ie, { children: "Nombre" }),
+                  c.jsx(ie, { children: "Email" }),
+                  c.jsx(ie, { children: "Tipo" }),
+                  c.jsx(ie, { children: "Estado" }),
+                  n && c.jsx(ie, { children: "Acc." }),
+                ],
+              }),
+            }),
+            c.jsx("tbody", {
+              children:
+                l.length === 0
+                  ? c.jsx("tr", {
+                      children: c.jsx("td", {
+                        colSpan: 5,
+                        style: {
+                          padding: "2rem",
+                          textAlign: "center",
+                          color: y.text3,
+                          fontSize: 13,
+                        },
+                        children: "No hay destinatarios configurados todavía",
+                      }),
+                    })
+                  : l.map((o) =>
+                      c.jsxs(
+                        "tr",
+                        {
+                          style: { borderBottom: "1px solid " + y.border },
+                          children: [
+                            c.jsx(le, {
+                              s: { fontWeight: 700 },
+                              children: o.nombre || "—",
+                            }),
+                            c.jsx(le, {
+                              s: { fontSize: 12, color: y.text2 },
+                              children: o.email || "—",
+                            }),
+                            c.jsx(le, {
+                              children: c.jsx(kl, {
+                                color: o.tipo === "cc" ? y.warning : y.primary,
+                                children: o.tipo === "cc" ? "CC" : "Para",
+                              }),
+                            }),
+                            c.jsx(le, {
+                              children: c.jsx(et, {
+                                label:
+                                  o.activo === false ? "Inactivo" : "Activo",
+                              }),
+                            }),
+                            n &&
+                              c.jsx(le, {
+                                children: c.jsxs("div", {
+                                  style: { display: "flex", gap: 3 },
+                                  children: [
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      onClick: () => t(o.id),
+                                      children: c.jsx("i", {
+                                        className: "ti ti-edit",
+                                      }),
+                                    }),
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      danger: !0,
+                                      onClick: () => r(o.id, o.nombre),
+                                      children: c.jsx("i", {
+                                        className: "ti ti-trash",
+                                      }),
+                                    }),
+                                  ],
+                                }),
+                              }),
+                          ],
+                        },
+                        o.id,
+                      ),
+                    ),
             }),
           ],
         }),
@@ -51511,6 +51654,7 @@ function b6({
       auditor: "auditores",
       area: "areas",
       responsable: "responsables",
+      destinatario: "informe_destinatarios",
       proceso: "procesos",
       hallazgo: "hallazgos",
       plan: "planes",
@@ -51521,6 +51665,7 @@ function b6({
       auditor: "Auditor",
       area: "Área",
       responsable: "Responsable",
+      destinatario: "Destinatario de Informe",
       proceso: "Proceso",
       hallazgo: "Hallazgo",
       plan: "Plan de acción",
@@ -51541,6 +51686,10 @@ function b6({
       }
       if (!["usuario", "hallazgo", "plan"].includes(e) && !h.nombre) {
         alert("Nombre requerido");
+        return;
+      }
+      if (e === "destinatario" && !h.email) {
+        alert("Email requerido");
         return;
       }
       if (["hallazgo", "plan"].includes(e) && !h.titulo) {
@@ -52070,6 +52219,61 @@ function b6({
                   c.jsx("option", { children: "Inactivo" }),
                 ],
               }),
+            }),
+          ],
+        }),
+      e === "destinatario" &&
+        c.jsxs(c.Fragment, {
+          children: [
+            c.jsxs(it, {
+              children: [
+                c.jsx(me, {
+                  label: "Nombre *",
+                  half: !0,
+                  children: c.jsx(Je, {
+                    value: h.nombre,
+                    onChange: (v) => k("nombre", v),
+                    placeholder: "Nombre Apellido",
+                  }),
+                }),
+                c.jsx(me, {
+                  label: "Email *",
+                  half: !0,
+                  children: c.jsx(Je, {
+                    value: h.email,
+                    onChange: (v) => k("email", v),
+                    placeholder: "correo@kielsa.hn",
+                  }),
+                }),
+              ],
+            }),
+            c.jsxs(it, {
+              children: [
+                c.jsx(me, {
+                  label: "Tipo",
+                  half: !0,
+                  children: c.jsxs(Xe, {
+                    value: h.tipo || "para",
+                    onChange: (v) => k("tipo", v),
+                    children: [
+                      c.jsx("option", { value: "para", children: "Para" }),
+                      c.jsx("option", { value: "cc", children: "CC" }),
+                    ],
+                  }),
+                }),
+                c.jsx(me, {
+                  label: "Estado",
+                  half: !0,
+                  children: c.jsxs(Xe, {
+                    value: h.activo === !1 ? "Inactivo" : "Activo",
+                    onChange: (v) => k("activo", v !== "Inactivo"),
+                    children: [
+                      c.jsx("option", { children: "Activo" }),
+                      c.jsx("option", { children: "Inactivo" }),
+                    ],
+                  }),
+                }),
+              ],
             }),
           ],
         }),
@@ -54062,7 +54266,8 @@ function C6({
                             c.jsx(ie, { children: "Estado" }),
                             c.jsx(ie, { children: "Observación" }),
                             c.jsx(ie, { children: "Evidencia" }),
-                            a && c.jsx(ie, { children: "Acc." }),
+                            (a || i.rol === "auditor") &&
+                              c.jsx(ie, { children: "Acc." }),
                           ],
                         }),
                       }),
@@ -54387,15 +54592,29 @@ function C6({
                                       }),
                                   ],
                                 }),
-                                a &&
+                                (a || i.rol === "auditor") &&
                                   c.jsx(le, {
-                                    children: c.jsx(Te, {
-                                      sm: !0,
-                                      danger: !0,
-                                      onClick: () => o("planes_trabajo", ee.id),
-                                      children: c.jsx("i", {
-                                        className: "ti ti-trash",
-                                      }),
+                                    children: c.jsxs("div", {
+                                      style: { display: "flex", gap: 3 },
+                                      children: [
+                                        c.jsx(Te, {
+                                          sm: !0,
+                                          onClick: () => v(ee),
+                                          children: c.jsx("i", {
+                                            className: "ti ti-mail",
+                                          }),
+                                        }),
+                                        a &&
+                                          c.jsx(Te, {
+                                            sm: !0,
+                                            danger: !0,
+                                            onClick: () =>
+                                              o("planes_trabajo", ee.id),
+                                            children: c.jsx("i", {
+                                              className: "ti ti-trash",
+                                            }),
+                                          }),
+                                      ],
                                     }),
                                   }),
                               ],
@@ -54446,6 +54665,256 @@ function C6({
           },
           onClose: () => w(!1),
         }),
+      m &&
+        c.jsx(InformeActividadModal, {
+          item: m,
+          db: e,
+          pN: t,
+          aN: r,
+          prN: n,
+          session: i,
+          onSave: s,
+          onClose: () => v(null),
+        }),
+    ],
+  });
+}
+function InformeActividadModal({
+  item: itemActividad,
+  db: dbState,
+  pN: paisNombre,
+  aN: auditorNombre,
+  prN: procesoNombre,
+  session: sesion,
+  onSave: guardar,
+  onClose: cerrar,
+}) {
+  const [texto, setTexto] = ke.useState(itemActividad.observacion || ""),
+    [enviando, setEnviando] = ke.useState(!1),
+    evidencias = (() => {
+      try {
+        const arr = itemActividad.evidencia
+          ? JSON.parse(itemActividad.evidencia)
+          : [];
+        return Array.isArray(arr) ? arr : [];
+      } catch {
+        return [];
+      }
+    })(),
+    destActivos = (dbState.informe_destinatarios || []).filter(
+      (d) => d.activo !== false,
+    ),
+    destPara = destActivos
+      .filter((d) => d.tipo !== "cc")
+      .map((d) => d.email)
+      .filter(Boolean),
+    destCc = destActivos
+      .filter((d) => d.tipo === "cc")
+      .map((d) => d.email)
+      .filter(Boolean),
+    nombrePais = paisNombre(itemActividad.paisId),
+    nombreProceso = procesoNombre(itemActividad.procesoId),
+    nombreAuditor = auditorNombre(itemActividad.auditorId),
+    enviarInforme = async () => {
+      if (!destPara.length) {
+        alert(
+          'No hay destinatarios "Para" configurados. Ve a Configuración → Destinatarios Informe para agregarlos.',
+        );
+        return;
+      }
+      setEnviando(!0);
+      try {
+        await guardar("plan_trabajo", itemActividad.id, {
+          ...itemActividad,
+          observacion: texto,
+        });
+        const asunto =
+            "Seguimiento de " +
+            nombreProceso +
+            " — " +
+            nombrePais +
+            " — " +
+            (itemActividad.fechaProgramada || ""),
+          lineas = [
+            "Buen día:",
+            "",
+            "Envío seguimiento de " +
+              nombreProceso +
+              " (" +
+              nombrePais +
+              ") correspondiente al " +
+              (itemActividad.fechaProgramada || "") +
+              ".",
+            "",
+            texto || "(sin observaciones)",
+          ];
+        evidencias.length &&
+          (lineas.push(""),
+          lineas.push("Evidencia:"),
+          evidencias.forEach((ev) =>
+            lineas.push("- " + (ev.name || "archivo") + ": " + ev.url),
+          ));
+        lineas.push(
+          "",
+          "Saludos,",
+          nombreAuditor !== "—" ? nombreAuditor : sesion.nombre || "",
+        );
+        const cuerpo = lineas.join("\n"),
+          mailto =
+            "mailto:" +
+            destPara.join(",") +
+            (destCc.length ? "?cc=" + destCc.join(",") + "&" : "?") +
+            "subject=" +
+            encodeURIComponent(asunto) +
+            "&body=" +
+            encodeURIComponent(cuerpo);
+        window.location.href = mailto;
+      } catch (err) {
+        alert("Error: " + err.message);
+      }
+      setEnviando(!1);
+    };
+  return c.jsxs(Wa, {
+    title: "Enviar informe — " + nombreProceso,
+    onClose: cerrar,
+    wide: !0,
+    children: [
+      c.jsxs("div", {
+        style: {
+          display: "flex",
+          gap: 14,
+          flexWrap: "wrap",
+          marginBottom: 12,
+          fontSize: 12,
+          color: y.text2,
+        },
+        children: [
+          c.jsxs("span", {
+            children: [c.jsx("b", { children: "País: " }), nombrePais],
+          }),
+          c.jsxs("span", {
+            children: [c.jsx("b", { children: "Auditor: " }), nombreAuditor],
+          }),
+          c.jsxs("span", {
+            children: [
+              c.jsx("b", { children: "Fecha: " }),
+              itemActividad.fechaProgramada || "—",
+            ],
+          }),
+        ],
+      }),
+      c.jsx(me, {
+        label: "Texto del informe",
+        children: c.jsx("textarea", {
+          value: texto,
+          onChange: (v) => setTexto(v.target.value),
+          rows: 6,
+          style: {
+            width: "100%",
+            padding: 8,
+            border: "1px solid " + y.border2,
+            borderRadius: 6,
+            fontFamily: "inherit",
+            fontSize: 13,
+            resize: "vertical",
+          },
+          placeholder: "Escribe el resumen de la revisión...",
+        }),
+      }),
+      evidencias.length > 0 &&
+        c.jsxs("div", {
+          style: { marginBottom: 12 },
+          children: [
+            c.jsx("div", {
+              style: {
+                fontSize: 11,
+                fontWeight: 700,
+                color: y.text3,
+                marginBottom: 4,
+                textTransform: "uppercase",
+              },
+              children: "Evidencia adjunta",
+            }),
+            c.jsx("div", {
+              style: { display: "flex", flexWrap: "wrap", gap: 8 },
+              children: evidencias.map((ev, idx) =>
+                c.jsxs(
+                  "a",
+                  {
+                    href: ev.url,
+                    target: "_blank",
+                    rel: "noreferrer",
+                    style: {
+                      fontSize: 11,
+                      color: y.primary,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 4,
+                      border: "1px solid " + y.border2,
+                      borderRadius: 6,
+                      padding: "4px 8px",
+                      textDecoration: "none",
+                    },
+                    children: [
+                      c.jsx("i", { className: "ti ti-paperclip" }),
+                      (ev.name || "archivo").substring(0, 24),
+                    ],
+                  },
+                  idx,
+                ),
+              ),
+            }),
+          ],
+        }),
+      c.jsxs("div", {
+        style: { marginBottom: 14, fontSize: 12, color: y.text2 },
+        children: [
+          c.jsx("div", {
+            style: {
+              fontSize: 11,
+              fontWeight: 700,
+              color: y.text3,
+              marginBottom: 4,
+              textTransform: "uppercase",
+            },
+            children: "Destinatarios",
+          }),
+          destPara.length
+            ? c.jsxs("div", {
+                children: [
+                  c.jsx("b", { children: "Para: " }),
+                  destPara.join(", "),
+                ],
+              })
+            : c.jsx("div", {
+                style: { color: y.danger },
+                children: 'No hay destinatarios "Para" configurados',
+              }),
+          destCc.length
+            ? c.jsxs("div", {
+                children: [
+                  c.jsx("b", { children: "CC: " }),
+                  destCc.join(", "),
+                ],
+              })
+            : null,
+        ],
+      }),
+      c.jsxs("div", {
+        style: { display: "flex", gap: 8, justifyContent: "flex-end" },
+        children: [
+          c.jsx(Te, { onClick: cerrar, children: "Cancelar" }),
+          c.jsxs(Te, {
+            primary: !0,
+            onClick: enviarInforme,
+            disabled: enviando,
+            children: [
+              c.jsx("i", { className: "ti ti-mail-forward" }),
+              " " + (enviando ? "Guardando..." : "Abrir en Outlook"),
+            ],
+          }),
+        ],
+      }),
     ],
   });
 }
