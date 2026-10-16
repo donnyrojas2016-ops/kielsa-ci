@@ -47746,8 +47746,9 @@ function u6() {
                       (G) => G.paisId === H && G.estado !== "Cerrado",
                     ).length,
                   prC: (H) =>
-                    r.procesos.filter((G) => (G.paisIds || []).includes(H))
-                      .length,
+                    r.procesos
+                      .filter((G) => G.activo !== false)
+                      .filter((G) => (G.paisIds || []).includes(H)).length,
                 }),
               s === "auditores" &&
                 c.jsx(g6, {
@@ -49007,7 +49008,7 @@ function m6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, arN: a, pC: s }) {
 function v6(e, t, r) {
   try {
     const n = bt.book_new(),
-      i = (e.procesos || []).map((s) => {
+      i = (e.procesos || []).filter((s) => s.activo !== false).map((s) => {
         const o = s.paisAuditores || {},
           l = (s.paisIds || []).map((f) => t(f)).join(", "),
           u = (s.paisIds || [])
@@ -49051,7 +49052,7 @@ function y6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
     [u, f] = ke.useState(""),
     [d, p] = ke.useState(""),
     [g, x] = ke.useState("compacta");
-  let h = e.procesos;
+  let h = e.procesos.filter((_) => _.activo !== false);
   return (
     o &&
       (h = h.filter((_) =>
@@ -49065,7 +49066,11 @@ function y6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
     c.jsxs(wt, {
       children: [
         c.jsx(Bt, {
-          left: h.length + " / " + e.procesos.length + " procesos",
+          left:
+            h.length +
+            " / " +
+            e.procesos.filter((_) => _.activo !== false).length +
+            " procesos",
           icon: "ti-git-branch",
           right: c.jsxs(c.Fragment, {
             children: [
@@ -51414,9 +51419,11 @@ function E6({
                               children: (E.auditorIds || []).length,
                             }),
                             c.jsx(le, {
-                              children: e.procesos.filter((M) =>
-                                (M.paisIds || []).includes(E.id),
-                              ).length,
+                              children: e.procesos
+                                .filter((M) => M.activo !== false)
+                                .filter((M) =>
+                                  (M.paisIds || []).includes(E.id),
+                                ).length,
                             }),
                             c.jsx(le, {
                               s: { color: y.danger, fontWeight: 700 },
@@ -52319,13 +52326,15 @@ function b6({
                         value: "",
                         children: "— Seleccionar —",
                       }),
-                      r.procesos.map((v) =>
-                        c.jsx(
-                          "option",
-                          { value: v.id, children: v.nombre },
-                          v.id,
+                      r.procesos
+                        .filter((v) => v.activo !== false)
+                        .map((v) =>
+                          c.jsx(
+                            "option",
+                            { value: v.id, children: v.nombre },
+                            v.id,
+                          ),
                         ),
-                      ),
                     ],
                   }),
                 }),
@@ -53545,7 +53554,9 @@ function C6({
           return diaSemana !== 0 ? dia : dia < ultimoDia ? dia + 1 : dia - 1;
         },
         nuevas = [];
-      e.procesos.forEach((proceso) => {
+      e.procesos
+        .filter((proceso) => proceso.activo !== false)
+        .forEach((proceso) => {
         const paisAuditores = proceso.paisAuditores || {},
           auditorIds = proceso.auditorIds || [];
         (proceso.paisIds || []).forEach((paisId) => {
@@ -54412,7 +54423,9 @@ function j6({ db: e, mes: t, pN: r, aN: n, prN: i, onGenerar: a, onClose: s }) {
       const v = [],
         [b, S] = t.split("-").map(Number),
         E = new Date(b, S, 0).getDate();
-      (e.procesos.forEach((C) => {
+      (e.procesos
+        .filter((C) => C.activo !== false)
+        .forEach((C) => {
         const A = C.paisAuditores || {},
           M = C.auditorIds || [];
         (C.paisIds || []).forEach((O) => {
@@ -55734,10 +55747,13 @@ function O6({
   onSave: a,
   showToast: s,
 }) {
-  const [o, l] = ke.useState(""),
+  const procesosActivos = (e.procesos || []).filter(
+      (pr) => pr.activo !== false,
+    ),
+    [o, l] = ke.useState(""),
     [u, f] = ke.useState(""),
     [d, p] = ke.useState(null),
-    g = e.procesos.filter(
+    g = procesosActivos.filter(
       (w) =>
         !(
           (o && !(w.paisIds || []).includes(parseInt(o))) ||
@@ -55782,28 +55798,28 @@ function O6({
         children: [
           {
             l: "Total procesos",
-            v: e.procesos.length,
+            v: procesosActivos.length,
             c: "#0ea5e9",
             bg: "#e0f2fe",
             ic: "ti-git-branch",
           },
           {
             l: "Madurez alta (4-5)",
-            v: e.procesos.filter((w) => x(w) >= 4).length,
+            v: procesosActivos.filter((w) => x(w) >= 4).length,
             c: y.success,
             bg: y.successBg,
             ic: "ti-shield-check",
           },
           {
             l: "Madurez baja (1-2)",
-            v: e.procesos.filter((w) => x(w) <= 2).length,
+            v: procesosActivos.filter((w) => x(w) <= 2).length,
             c: y.danger,
             bg: y.dangerBg,
             ic: "ti-alert-triangle",
           },
           {
             l: "Sin próxima auditoría",
-            v: e.procesos.filter((w) => !w.proximaAuditoria).length,
+            v: procesosActivos.filter((w) => !w.proximaAuditoria).length,
             c: y.warning,
             bg: y.warningBg,
             ic: "ti-calendar-off",
@@ -59717,13 +59733,15 @@ function V6({
                       style: { ...Pe, fontSize: 12 },
                       children: [
                         c.jsx("option", { value: "", children: "— Proceso —" }),
-                        e.procesos.map((O) =>
-                          c.jsx(
-                            "option",
-                            { value: O.id, children: O.nombre },
-                            O.id,
+                        e.procesos
+                          .filter((O) => O.activo !== false)
+                          .map((O) =>
+                            c.jsx(
+                              "option",
+                              { value: O.id, children: O.nombre },
+                              O.id,
+                            ),
                           ),
-                        ),
                       ],
                     }),
                   ],
@@ -60085,29 +60103,4 @@ function V6({
             c.jsxs("div", {
               style: { display: "flex", gap: 8 },
               children: [
-                c.jsx(Te, { onClick: n, children: "Cancelar" }),
-                c.jsxs(Te, {
-                  primary: !0,
-                  disabled: m || h.filter((O) => O.titulo.trim()).length === 0,
-                  onClick: C,
-                  children: [
-                    c.jsx("i", { className: "ti ti-check" }),
-                    " ",
-                    m
-                      ? "Guardando..."
-                      : "Guardar " +
-                        h.filter((O) => O.titulo.trim()).length +
-                        " hallazgo(s)",
-                  ],
-                }),
-              ],
-            }),
-          ],
-        }),
-      ],
-    }),
-  });
-}
-Zf.createRoot(document.getElementById("root")).render(
-  c.jsx(I2.StrictMode, { children: c.jsx(u6, {}) }),
-);
+                c.jsx(Te, { onClick: n, children: "C
