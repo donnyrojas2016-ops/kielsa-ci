@@ -54691,6 +54691,7 @@ function InformeActividadModal({
 }) {
   const [texto, setTexto] = ke.useState(itemActividad.observacion || ""),
     [enviando, setEnviando] = ke.useState(!1),
+    [copiado, setCopiado] = ke.useState(null),
     evidencias = (() => {
       try {
         const arr = itemActividad.evidencia
@@ -54715,6 +54716,24 @@ function InformeActividadModal({
     nombrePais = paisNombre(itemActividad.paisId),
     nombreProceso = procesoNombre(itemActividad.procesoId),
     nombreAuditor = auditorNombre(itemActividad.auditorId),
+    imagenEvidencia = evidencias.find((ev) =>
+      /\.(png|jpe?g|gif|webp)(\?.*)?$/i.test(ev.name || ev.url || ""),
+    ),
+    copiarImagenAlPortapapeles = async (url) => {
+      const resp = await fetch(url),
+        blobOriginal = await resp.blob();
+      let pngBlob = blobOriginal;
+      if (blobOriginal.type !== "image/png") {
+        const bitmap = await createImageBitmap(blobOriginal),
+          canvas = document.createElement("canvas");
+        ((canvas.width = bitmap.width), (canvas.height = bitmap.height));
+        canvas.getContext("2d").drawImage(bitmap, 0, 0);
+        pngBlob = await new Promise((res) => canvas.toBlob(res, "image/png"));
+      }
+      await navigator.clipboard.write([
+        new ClipboardItem({ "image/png": pngBlob }),
+      ]);
+    },
     enviarInforme = async () => {
       if (!destPara.length) {
         alert(
@@ -54723,11 +54742,20 @@ function InformeActividadModal({
         return;
       }
       setEnviando(!0);
+      setCopiado(null);
+      let imagenCopiada = !1;
       try {
         await guardar("plan_trabajo", itemActividad.id, {
           ...itemActividad,
           observacion: texto,
         });
+        if (imagenEvidencia)
+          try {
+            (await copiarImagenAlPortapapeles(imagenEvidencia.url),
+              (imagenCopiada = !0));
+          } catch {
+            imagenCopiada = !1;
+          }
         const asunto =
             "Seguimiento de " +
             nombreProceso +
@@ -54753,6 +54781,12 @@ function InformeActividadModal({
           lineas.push("Evidencia:"),
           evidencias.forEach((ev) =>
             lineas.push("- " + (ev.name || "archivo") + ": " + ev.url),
+          ),
+          lineas.push(
+            "",
+            imagenCopiada
+              ? "(Ya copié la imagen a tu portapapeles — pégala aquí arriba con Ctrl+V)."
+              : "(Para que la imagen se vea aquí arriba en el correo: abre el enlace, clic derecho sobre la imagen → Copiar imagen, y pégala con Ctrl+V justo debajo de este texto).",
           ));
         lineas.push(
           "",
@@ -54768,7 +54802,14 @@ function InformeActividadModal({
             encodeURIComponent(asunto) +
             "&body=" +
             encodeURIComponent(cuerpo);
-        window.location.href = mailto;
+        (window.location.href = mailto,
+          setCopiado(
+            imagenCopiada
+              ? "Imagen copiada al portapapeles — ve a Outlook y pégala con Ctrl+V."
+              : imagenEvidencia
+                ? "No se pudo copiar la imagen automáticamente (tu navegador bloqueó el acceso al portapapeles). Ábrela desde el enlace del correo y cópiala manualmente."
+                : null,
+          ));
       } catch (err) {
         alert("Error: " + err.message);
       }
@@ -54910,11 +54951,34 @@ function InformeActividadModal({
             disabled: enviando,
             children: [
               c.jsx("i", { className: "ti ti-mail-forward" }),
-              " " + (enviando ? "Guardando..." : "Abrir en Outlook"),
+              " " +
+                (enviando
+                  ? "Procesando..."
+                  : imagenEvidencia
+                    ? "Copiar imagen y abrir Outlook"
+                    : "Abrir en Outlook"),
             ],
           }),
         ],
       }),
+      copiado &&
+        c.jsxs("div", {
+          style: {
+            marginTop: 10,
+            padding: "8px 10px",
+            borderRadius: 6,
+            background: y.successBg,
+            color: y.success,
+            fontSize: 12,
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+          },
+          children: [
+            c.jsx("i", { className: "ti ti-clipboard-check" }),
+            copiado,
+          ],
+        }),
     ],
   });
 }
