@@ -50217,6 +50217,81 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
           ),
         ),
       }),
+      c.jsx("div", {
+        style: {
+          fontSize: 11,
+          fontWeight: 700,
+          color: y.text3,
+          textTransform: "uppercase",
+          letterSpacing: "0.05em",
+          marginBottom: 8,
+        },
+        children: "Global",
+      }),
+      c.jsxs("div", {
+        style: {
+          border: "1.5px solid " + y.primary,
+          borderRadius: 14,
+          background: "linear-gradient(135deg,#fff,#f5f8ff)",
+          padding: "1.1rem 1.25rem",
+          marginBottom: 16,
+        },
+        children: [
+          c.jsx("div", {
+            style: {
+              fontSize: 12,
+              fontWeight: 700,
+              color: y.text2,
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              marginBottom: 14,
+            },
+            children: "Cumplimiento Regional",
+          }),
+          c.jsxs("div", {
+            style: {
+              display: "flex",
+              alignItems: "baseline",
+              gap: 14,
+              marginBottom: 10,
+            },
+            children: [
+              c.jsxs("span", {
+                style: { fontSize: 30, fontWeight: 800, color: y.primary },
+                children: [avance, "%"],
+              }),
+              c.jsxs("span", {
+                style: { fontSize: 13, color: y.text2 },
+                children: [completadas, " de ", total, " actividades completadas"],
+              }),
+            ],
+          }),
+          c.jsx("div", {
+            style: {
+              height: 8,
+              background: y.border,
+              borderRadius: 4,
+              overflow: "hidden",
+            },
+            children: c.jsx("div", {
+              style: {
+                height: "100%",
+                width: avance + "%",
+                borderRadius: 4,
+                background:
+                  avance >= 80
+                    ? y.success
+                    : avance >= 50
+                      ? y.warning
+                      : total
+                        ? y.danger
+                        : y.border2,
+                transition: "width .3s",
+              },
+            }),
+          }),
+        ],
+      }),
       c.jsxs(wt, {
         children: [
           c.jsx(Bt, { left: "Avance por país", icon: "ti-world" }),
@@ -50248,8 +50323,33 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
                         display: "flex",
                         alignItems: "center",
                         gap: 6,
+                        position: "relative",
+                        overflow: "hidden",
                       },
-                      children: [Ze(v.nombre), " ", v.nombre],
+                      children: [
+                        c.jsx("span", {
+                          style: {
+                            position: "absolute",
+                            right: -6,
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            fontSize: 42,
+                            lineHeight: 1,
+                            opacity: 0.28,
+                            filter: "grayscale(0.15)",
+                            pointerEvents: "none",
+                          },
+                          children: Ze(v.nombre),
+                        }),
+                        c.jsx("span", {
+                          style: { position: "relative", zIndex: 1 },
+                          children: Ze(v.nombre),
+                        }),
+                        c.jsx("span", {
+                          style: { position: "relative", zIndex: 1 },
+                          children: v.nombre,
+                        }),
+                      ],
                     }),
                     c.jsxs("div", {
                       style: { padding: "0.75rem" },
