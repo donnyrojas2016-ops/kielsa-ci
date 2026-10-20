@@ -46506,7 +46506,7 @@ async function Lr(e) {
         todas = [];
       for (;;) {
         const { data: t, error: r } = await Aa.from(e)
-          .select(e === "usuarios" ? "id,usuario,nombre,estado" : "*")
+          .select(e === "usuarios" ? "id,usuario,nombre,estado,rol,auditor_id,permisos" : "*")
           .order("id")
           .range(desde, desde + PAGINA - 1);
         if (r) throw r;
@@ -46527,7 +46527,7 @@ async function s6(e, t) {
   const r = i6(t),
     { data: n, error: i } = await Aa.from(e)
       .upsert(r)
-      .select(e === "usuarios" ? "id,usuario,nombre,estado" : "*");
+      .select(e === "usuarios" ? "id,usuario,nombre,estado,rol,auditor_id,permisos" : "*");
   if (i) throw i;
   return e2(n[0]);
 }
