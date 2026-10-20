@@ -47862,6 +47862,8 @@ function u6() {
                       name: G,
                     }),
                   isAdmin: V,
+                  onSave: ne,
+                  showToast: v,
                 }),
               s === "procesos" &&
                 c.jsx(y6, {
@@ -49206,12 +49208,20 @@ function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
     ],
   });
 }
-function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
+function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2, showToast: s2 }) {
   const a = [...(e.cierre_actividades || [])].sort(
     (o, l) =>
       (o.categoria || "").localeCompare(l.categoria || "") ||
       (o.orden || 0) - (l.orden || 0),
   );
+  const toggleActivo = async (o) => {
+    try {
+      await a2("cierre_actividad", o.id, { ...o, activo: o.activo === false });
+      s2 && s2(o.activo === false ? "Activada ✓" : "Desactivada ✓");
+    } catch (err) {
+      s2 && s2("Error: " + err.message, !0);
+    }
+  };
   return c.jsxs(wt, {
     children: [
       c.jsx(Bt, {
@@ -49243,6 +49253,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
                   c.jsx(ie, { children: "Frecuencia" }),
                   c.jsx(ie, { children: "Orden" }),
                   c.jsx(ie, { children: "Responsables por país" }),
+                  c.jsx(ie, { children: "Estado" }),
                   i && c.jsx(ie, { children: "Acc." }),
                 ],
               }),
@@ -49252,7 +49263,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
                 a.length === 0
                   ? c.jsx("tr", {
                       children: c.jsx("td", {
-                        colSpan: 6,
+                        colSpan: 7,
                         style: {
                           padding: "2rem",
                           textAlign: "center",
@@ -49306,6 +49317,11 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
                                   }),
                               }),
                             }),
+                            c.jsx(le, {
+                              children: c.jsx(et, {
+                                label: o.activo === false ? "Inactivo" : "Activo",
+                              }),
+                            }),
                             i &&
                               c.jsx(le, {
                                 children: c.jsxs("div", {
@@ -49314,12 +49330,29 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
                                     c.jsx(Te, {
                                       sm: !0,
                                       onClick: () => r(o.id),
+                                      title: "Editar",
                                       children: c.jsx("i", { className: "ti ti-edit" }),
+                                    }),
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      onClick: () => toggleActivo(o),
+                                      title:
+                                        o.activo === false
+                                          ? "Activar"
+                                          : "Inactivar",
+                                      children: c.jsx("i", {
+                                        className:
+                                          "ti " +
+                                          (o.activo === false
+                                            ? "ti-player-play"
+                                            : "ti-player-pause"),
+                                      }),
                                     }),
                                     c.jsx(Te, {
                                       sm: !0,
                                       danger: !0,
                                       onClick: () => n(o.id, o.actividad),
+                                      title: "Eliminar permanentemente",
                                       children: c.jsx("i", { className: "ti ti-trash" }),
                                     }),
                                   ],
@@ -53064,14 +53097,30 @@ function b6({
                 placeholder: "Descripción de la actividad del cierre",
               }),
             }),
-            c.jsx(me, {
-              label: "Orden",
-              third: !0,
-              children: c.jsx(Je, {
-                type: "number",
-                value: h.orden ?? "",
-                onChange: (v) => k("orden", v ? parseInt(v) : 0),
-              }),
+            c.jsxs(it, {
+              children: [
+                c.jsx(me, {
+                  label: "Orden",
+                  half: !0,
+                  children: c.jsx(Je, {
+                    type: "number",
+                    value: h.orden ?? "",
+                    onChange: (v) => k("orden", v ? parseInt(v) : 0),
+                  }),
+                }),
+                c.jsx(me, {
+                  label: "Estado",
+                  half: !0,
+                  children: c.jsxs(Xe, {
+                    value: h.activo === !1 ? "Inactivo" : "Activo",
+                    onChange: (v) => k("activo", v !== "Inactivo"),
+                    children: [
+                      c.jsx("option", { children: "Activo" }),
+                      c.jsx("option", { children: "Inactivo" }),
+                    ],
+                  }),
+                }),
+              ],
             }),
             c.jsxs("div", {
               style: {
