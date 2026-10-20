@@ -46994,7 +46994,7 @@ function u6() {
         p_usuario: H,
         p_password: G,
       });
-      return Ae && !Be ? (t(Ae), o("dashboard"), !0) : !1;
+      return Ae && !Be ? (t(e2(Ae)), o("dashboard"), !0) : !1;
     },
     te = () => {
       (t(null), o("dashboard"));
