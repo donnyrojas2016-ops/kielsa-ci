@@ -50219,76 +50219,82 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
       }),
       c.jsx("div", {
         style: {
-          fontSize: 11,
+          fontSize: 10,
           fontWeight: 700,
           color: y.text3,
           textTransform: "uppercase",
           letterSpacing: "0.05em",
-          marginBottom: 8,
+          marginBottom: 5,
         },
         children: "Global",
       }),
       c.jsxs("div", {
         style: {
           border: "1.5px solid " + y.primary,
-          borderRadius: 14,
+          borderRadius: 12,
           background: "linear-gradient(135deg,#fff,#f5f8ff)",
-          padding: "1.1rem 1.25rem",
-          marginBottom: 16,
+          padding: "0.6rem 0.9rem",
+          marginBottom: 14,
+          display: "flex",
+          alignItems: "center",
+          gap: 14,
         },
         children: [
-          c.jsx("div", {
-            style: {
-              fontSize: 12,
-              fontWeight: 700,
-              color: y.text2,
-              textTransform: "uppercase",
-              letterSpacing: "0.04em",
-              marginBottom: 14,
-            },
-            children: "Cumplimiento Regional",
+          c.jsxs("span", {
+            style: { fontSize: 20, fontWeight: 800, color: y.primary, flexShrink: 0 },
+            children: [avance, "%"],
           }),
           c.jsxs("div", {
-            style: {
-              display: "flex",
-              alignItems: "baseline",
-              gap: 14,
-              marginBottom: 10,
-            },
+            style: { flex: 1, minWidth: 120 },
             children: [
-              c.jsxs("span", {
-                style: { fontSize: 30, fontWeight: 800, color: y.primary },
-                children: [avance, "%"],
+              c.jsxs("div", {
+                style: {
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 10.5,
+                  color: y.text2,
+                  marginBottom: 3,
+                },
+                children: [
+                  c.jsx("span", {
+                    style: {
+                      fontWeight: 700,
+                      color: y.text3,
+                      textTransform: "uppercase",
+                      letterSpacing: "0.03em",
+                    },
+                    children: "Cumplimiento Regional",
+                  }),
+                  c.jsxs("span", {
+                    children: [completadas, " de ", total, " completadas"],
+                  }),
+                ],
               }),
-              c.jsxs("span", {
-                style: { fontSize: 13, color: y.text2 },
-                children: [completadas, " de ", total, " actividades completadas"],
+              c.jsx("div", {
+                style: {
+                  height: 6,
+                  background: y.border,
+                  borderRadius: 3,
+                  overflow: "hidden",
+                },
+                children: c.jsx("div", {
+                  style: {
+                    height: "100%",
+                    width: avance + "%",
+                    borderRadius: 3,
+                    background:
+                      avance >= 80
+                        ? y.success
+                        : avance >= 50
+                          ? y.warning
+                          : total
+                            ? y.danger
+                            : y.border2,
+                    transition: "width .3s",
+                  },
+                }),
               }),
             ],
-          }),
-          c.jsx("div", {
-            style: {
-              height: 8,
-              background: y.border,
-              borderRadius: 4,
-              overflow: "hidden",
-            },
-            children: c.jsx("div", {
-              style: {
-                height: "100%",
-                width: avance + "%",
-                borderRadius: 4,
-                background:
-                  avance >= 80
-                    ? y.success
-                    : avance >= 50
-                      ? y.warning
-                      : total
-                        ? y.danger
-                        : y.border2,
-                transition: "width .3s",
-              },
-            }),
           }),
         ],
       }),
