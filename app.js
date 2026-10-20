@@ -46472,6 +46472,9 @@ const t6 = {
     responsables: "responsables",
     destinatario: "informe_destinatarios",
     destinatarios: "informe_destinatarios",
+    cierre_actividad: "cierre_actividades",
+    cierre_actividades: "cierre_actividades",
+    cierre_ejecucion: "cierre_ejecucion",
     proceso: "procesos",
     procesos: "procesos",
     hallazgo: "hallazgos",
@@ -46867,7 +46870,7 @@ function u6() {
     m = ke.useCallback(async (H = !1) => {
       H || a(!0);
       try {
-        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd] =
+        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd, ca, ce] =
           await Promise.all([
             Lr("usuarios"),
             Lr("paises"),
@@ -46882,6 +46885,8 @@ function u6() {
             Lr("historial_hallazgos"),
             Lr("proyectos"),
             Lr("informe_destinatarios"),
+            Lr("cierre_actividades"),
+            Lr("cierre_ejecucion"),
           ]);
         n({
           usuarios: G,
@@ -46897,6 +46902,8 @@ function u6() {
           historial: br,
           proyectos: Jr,
           informe_destinatarios: pd,
+          cierre_actividades: ca,
+          cierre_ejecucion: ce,
         });
       } catch (G) {
         console.error(G);
@@ -47208,6 +47215,16 @@ function u6() {
                 },
               ]
             : []),
+          ...(V
+            ? [
+                {
+                  id: "cierre_catalogo",
+                  ic: "ti-list-details",
+                  lb: "Catálogo de Cierre",
+                  color: "#0d9488",
+                },
+              ]
+            : []),
           ...(F("procesos")
             ? [
                 {
@@ -47285,6 +47302,21 @@ function u6() {
             },
           ]
         : []),
+      ...(F("cierre")
+        ? [
+            {
+              g: "Cierre",
+              items: [
+                {
+                  id: "cierre",
+                  ic: "ti-calendar-event",
+                  lb: "Cierre Mensual",
+                  color: "#0d9488",
+                },
+              ],
+            },
+          ]
+        : []),
     ],
     N = {
       dashboard: "Dashboard",
@@ -47300,6 +47332,8 @@ function u6() {
       plan_trabajo: "Plan de Trabajo",
       informes: "Informes PDF",
       reportes: "Reportes",
+      cierre_catalogo: "Catálogo de Cierre",
+      cierre: "Cierre Mensual",
     },
     U =
       ((fe = W.flatMap((H) => H.items || []).find((H) => H.id === s)) == null
@@ -47815,6 +47849,20 @@ function u6() {
                     }),
                   isAdmin: V,
                 }),
+              s === "cierre_catalogo" &&
+                c.jsx(CierreCatalogoPage, {
+                  db: r,
+                  pN: b,
+                  oE: (H) => d({ t: "cierre_actividad", id: H }),
+                  oD: (H, G) =>
+                    d({
+                      t: "_del",
+                      table: "cierre_actividades",
+                      id: H,
+                      name: G,
+                    }),
+                  isAdmin: V,
+                }),
               s === "procesos" &&
                 c.jsx(y6, {
                   db: r,
@@ -47899,6 +47947,16 @@ function u6() {
                   hTitle: O,
                   onExport: ce,
                   onRefresh: () => m(!0),
+                }),
+              s === "cierre" &&
+                c.jsx(CierreMensualPage, {
+                  db: r,
+                  pN: b,
+                  session: e,
+                  isAdmin: V,
+                  onSave: ne,
+                  onDelete: X,
+                  showToast: v,
                 }),
             ],
           }),
@@ -49144,6 +49202,675 @@ function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
             }),
           ],
         }),
+      }),
+    ],
+  });
+}
+function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
+  const a = [...(e.cierre_actividades || [])].sort(
+    (o, l) =>
+      (o.categoria || "").localeCompare(l.categoria || "") ||
+      (o.orden || 0) - (l.orden || 0),
+  );
+  return c.jsxs(wt, {
+    children: [
+      c.jsx(Bt, {
+        left: a.length + " actividades de cierre mensual",
+        icon: "ti-list-details",
+        right:
+          i &&
+          c.jsxs(Te, {
+            primary: !0,
+            onClick: () => r(null),
+            children: [c.jsx("i", { className: "ti ti-plus" }), " Agregar actividad"],
+          }),
+      }),
+      c.jsx("div", {
+        style: { padding: "8px 14px", fontSize: 11.5, color: y.text3 },
+        children:
+          "Este catálogo es compartido por los 5 países. Cada actividad define quién es el responsable en cada país; desde 'Cierre Mensual' se genera el checklist del mes para el país seleccionado a partir de esta lista.",
+      }),
+      c.jsx("div", {
+        style: { overflowX: "auto" },
+        children: c.jsxs("table", {
+          style: { width: "100%", borderCollapse: "collapse" },
+          children: [
+            c.jsx("thead", {
+              children: c.jsxs("tr", {
+                children: [
+                  c.jsx(ie, { children: "Categoría" }),
+                  c.jsx(ie, { children: "Actividad" }),
+                  c.jsx(ie, { children: "Frecuencia" }),
+                  c.jsx(ie, { children: "Orden" }),
+                  c.jsx(ie, { children: "Responsables por país" }),
+                  i && c.jsx(ie, { children: "Acc." }),
+                ],
+              }),
+            }),
+            c.jsx("tbody", {
+              children:
+                a.length === 0
+                  ? c.jsx("tr", {
+                      children: c.jsx("td", {
+                        colSpan: 6,
+                        style: {
+                          padding: "2rem",
+                          textAlign: "center",
+                          color: y.text3,
+                          fontSize: 13,
+                        },
+                        children: "No hay actividades de cierre configuradas todavía",
+                      }),
+                    })
+                  : a.map((o) =>
+                      c.jsxs(
+                        "tr",
+                        {
+                          style: {
+                            borderBottom: "1px solid " + y.border,
+                            opacity: o.activo === false ? 0.5 : 1,
+                          },
+                          children: [
+                            c.jsx(le, {
+                              children: c.jsx(kl, {
+                                color: y.primary,
+                                children: o.categoria || "—",
+                              }),
+                            }),
+                            c.jsx(le, {
+                              s: { fontWeight: 600 },
+                              children: o.actividad || "—",
+                            }),
+                            c.jsx(le, {
+                              children: c.jsx(et, { label: o.frecuencia || "Mensual" }),
+                            }),
+                            c.jsx(le, {
+                              s: { fontSize: 12, color: y.text2 },
+                              children: o.orden ?? "—",
+                            }),
+                            c.jsx(le, {
+                              children: c.jsx("div", {
+                                style: { display: "flex", flexWrap: "wrap" },
+                                children: e.paises
+                                  .filter((l) => l.estado === "Activo")
+                                  .map((l) => {
+                                    const u = (o.paisResponsables || {})[l.id];
+                                    return (
+                                      u &&
+                                      c.jsxs(
+                                        kl,
+                                        { color: y.gray, children: [Ze(l.nombre), " ", u] },
+                                        l.id,
+                                      )
+                                    );
+                                  }),
+                              }),
+                            }),
+                            i &&
+                              c.jsx(le, {
+                                children: c.jsxs("div", {
+                                  style: { display: "flex", gap: 3 },
+                                  children: [
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      onClick: () => r(o.id),
+                                      children: c.jsx("i", { className: "ti ti-edit" }),
+                                    }),
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      danger: !0,
+                                      onClick: () => n(o.id, o.actividad),
+                                      children: c.jsx("i", { className: "ti ti-trash" }),
+                                    }),
+                                  ],
+                                }),
+                              }),
+                          ],
+                        },
+                        o.id,
+                      ),
+                    ),
+            }),
+          ],
+        }),
+      }),
+    ],
+  });
+}
+function generarChecklistCierrePDF(paisNombre, mesLabel, items, totals) {
+  if (!window.jspdf) {
+    alert("Librería PDF no cargada. Recarga la página.");
+    return;
+  }
+  const { jsPDF: f } = window.jspdf,
+    d = new f({ orientation: "landscape", unit: "mm", format: "letter" }),
+    p = d.internal.pageSize.getWidth(),
+    g = d.internal.pageSize.getHeight(),
+    fechaEmision = new Date().toLocaleDateString("es-HN", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    }),
+    hoy = new Date().toISOString().split("T")[0],
+    h = [0, 14, 139],
+    k = [100, 116, 139],
+    w = [241, 245, 249],
+    m = [13, 122, 78],
+    vv = [192, 57, 43],
+    b = [180, 83, 9];
+  (d.setFillColor(...h),
+    d.rect(0, 0, p, 30, "F"),
+    d.setFillColor(255, 221, 0),
+    d.rect(0, 30, p, 1.4, "F"),
+    d.setFillColor(255, 255, 255),
+    d.roundedRect(8, 5.5, 48, 17, 2.5, 2.5, "F"),
+    d.addImage(KIELSA_LOGO_PNG, "PNG", 10.5, 8.2, 43, 11.57),
+    d.setTextColor(255, 255, 255),
+    d.setFontSize(15),
+    d.setFont("helvetica", "bold"),
+    d.text("Checklist de Cierre Mensual", 62, 14),
+    d.setFontSize(8.5),
+    d.setFont("helvetica", "normal"),
+    d.text(
+      paisNombre + " · " + mesLabel + " · Dirección de Control Interno",
+      62,
+      21,
+    ),
+    d.setFontSize(7.5),
+    d.text("Emisión: " + fechaEmision, p - 12, 14, { align: "right" }));
+  let S = 40;
+  const X = (p - 24) / 4,
+    stat = (I, K, V, ne, X2) => {
+      (d.setFillColor(...w),
+        d.roundedRect(I, S, V, 24, 2, 2, "F"),
+        d.setFillColor(...X2),
+        d.rect(I, S, 2, 24, "F"),
+        d.setTextColor(...k),
+        d.setFontSize(7),
+        d.setFont("helvetica", "normal"),
+        d.text(K.toUpperCase(), I + 5, S + 7),
+        d.setTextColor(...X2),
+        d.setFontSize(16),
+        d.setFont("helvetica", "bold"),
+        d.text(String(ne), I + 5, S + 18));
+    };
+  (stat(10, "Total actividades", X - 2, totals.total, h),
+    stat(10 + X, "Completadas", X - 2, totals.completadas, m),
+    stat(10 + X * 2, "Pendientes", X - 2, totals.pendientes, b),
+    stat(
+      10 + X * 3,
+      "% Avance",
+      X - 2,
+      totals.avance + "%",
+      totals.avance >= 80 ? m : totals.avance >= 50 ? b : vv,
+    ));
+  S += 32;
+  d.autoTable({
+    startY: S,
+    margin: { left: 10, right: 10 },
+    head: [
+      [
+        "Categoría",
+        "Actividad",
+        "Responsable",
+        "Frecuencia",
+        "Estado",
+        "Fecha límite",
+        "Observaciones",
+      ],
+    ],
+    body: items.map((v) => [
+      v.categoria || "",
+      v.actividad || "",
+      v.responsable || "—",
+      v.frecuencia || "",
+      v.realizado
+        ? "Completado"
+        : v.fechaLimite && v.fechaLimite < hoy
+          ? "Vencido"
+          : "Pendiente",
+      v.fechaLimite || "—",
+      (v.observaciones || "—").substring(0, 40),
+    ]),
+    styles: { cellPadding: 2, overflow: "linebreak" },
+    headStyles: {
+      fillColor: h,
+      textColor: [255, 255, 255],
+      fontSize: 8,
+      fontStyle: "bold",
+    },
+    bodyStyles: { fontSize: 7.5, textColor: [15, 23, 42] },
+    alternateRowStyles: { fillColor: [248, 250, 252] },
+    columnStyles: {
+      0: { cellWidth: 34 },
+      1: { cellWidth: 74 },
+      2: { cellWidth: 34 },
+      3: { cellWidth: 20 },
+      4: { cellWidth: 22 },
+      5: { cellWidth: 22 },
+      6: { cellWidth: 53 },
+    },
+    didParseCell: (I) => {
+      if (I.section === "body" && I.column.index === 4) {
+        const U = I.cell.raw,
+          Z = U === "Completado" ? m : U === "Vencido" ? vv : b;
+        ((I.cell.styles.textColor = Z), (I.cell.styles.fontStyle = "bold"));
+      }
+    },
+  });
+  const O = d.internal.getNumberOfPages();
+  for (let I = 1; I <= O; I++)
+    (d.setPage(I),
+      d.setFillColor(...w),
+      d.rect(0, g - 12, p, 12, "F"),
+      d.setDrawColor(...h),
+      d.setLineWidth(0.4),
+      d.line(0, g - 12, p, g - 12),
+      d.setTextColor(...k),
+      d.setFontSize(7),
+      d.setFont("helvetica", "normal"),
+      d.text(
+        "© Kielsa Farmacéutica · Sistema de Control Interno · © Donny Rojas · Confidencial",
+        12,
+        g - 5,
+      ),
+      d.text("Pág. " + I + " / " + O, p - 12, g - 5, { align: "right" }));
+  d.save(
+    "KielsaCI_Cierre_" +
+      paisNombre.replace(/\s+/g, "") +
+      "_" +
+      mesLabel.replace(/\s+/g, "") +
+      ".pdf",
+  );
+}
+function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, onDelete: a, showToast: s }) {
+  const paisesActivos = e.paises.filter((v) => v.estado === "Activo"),
+    [paisId, setPaisId] = ke.useState(() =>
+      paisesActivos[0] ? paisesActivos[0].id : null,
+    ),
+    [mes, setMes] = ke.useState(() => {
+      const d2 = new Date();
+      return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
+    }),
+    [generando, setGenerando] = ke.useState(!1),
+    items = (e.cierre_ejecucion || [])
+      .filter((v) => v.paisId === paisId && v.mes === mes)
+      .sort(
+        (v, w2) =>
+          (v.categoria || "").localeCompare(w2.categoria || "") ||
+          (v.orden || 0) - (w2.orden || 0),
+      ),
+    hoy = new Date().toISOString().split("T")[0],
+    semaforo = (v) => {
+      if (v.realizado) return "verde";
+      if (v.fechaLimite && v.fechaLimite < hoy) return "rojo";
+      return "amarillo";
+    },
+    total = items.length,
+    completadas = items.filter((v) => v.realizado).length,
+    pendientes = total - completadas,
+    avance = total ? Math.round((completadas / total) * 100) : 0,
+    mesLabel = (() => {
+      const [anio, mesNum] = mes.split("-"),
+        nombres = [
+          "Enero",
+          "Febrero",
+          "Marzo",
+          "Abril",
+          "Mayo",
+          "Junio",
+          "Julio",
+          "Agosto",
+          "Septiembre",
+          "Octubre",
+          "Noviembre",
+          "Diciembre",
+        ];
+      return nombres[parseInt(mesNum) - 1] + " " + anio;
+    })(),
+    catalogoActivo = (e.cierre_actividades || []).filter((v) => v.activo !== false),
+    faltantes = catalogoActivo.filter(
+      (v) => !items.some((it) => it.actividadId === v.id),
+    ),
+    generar = async () => {
+      if (!catalogoActivo.length) {
+        s("No hay actividades configuradas en el catálogo de cierre", !0);
+        return;
+      }
+      if (!faltantes.length) return;
+      setGenerando(!0);
+      try {
+        for (const v of faltantes) {
+          const responsable = (v.paisResponsables || {})[paisId] || "";
+          await i("cierre_ejecucion", null, {
+            actividadId: v.id,
+            paisId: paisId,
+            mes: mes,
+            categoria: v.categoria || "",
+            actividad: v.actividad || "",
+            responsable: responsable,
+            frecuencia: v.frecuencia || "Mensual",
+            orden: v.orden || 0,
+            realizado: !1,
+            fechaRealizado: null,
+            fechaLimite: null,
+            observaciones: "",
+          });
+        }
+        s(
+          items.length
+            ? "Se agregaron " + faltantes.length + " actividad(es) nueva(s)"
+            : "Checklist generado: " + faltantes.length + " actividad(es)",
+        );
+      } catch (err) {
+        s("Error: " + err.message, !0);
+      }
+      setGenerando(!1);
+    },
+    actualizar = async (item, cambios) => {
+      try {
+        await i("cierre_ejecucion", item.id, { ...item, ...cambios });
+      } catch (err) {
+        s("Error: " + err.message, !0);
+      }
+    },
+    descargarPDF = () => {
+      if (!items.length) {
+        s("Primero genera el checklist del mes", !0);
+        return;
+      }
+      generarChecklistCierrePDF(t(paisId), mesLabel, items, {
+        total,
+        completadas,
+        pendientes,
+        avance,
+      });
+    };
+  return c.jsxs(c.Fragment, {
+    children: [
+      c.jsxs("div", {
+        style: {
+          display: "flex",
+          gap: 10,
+          marginBottom: 16,
+          flexWrap: "wrap",
+          alignItems: "center",
+        },
+        children: [
+          c.jsx("select", {
+            value: paisId ?? "",
+            onChange: (v) => setPaisId(parseInt(v.target.value)),
+            style: { ...Pe, width: 200, fontSize: 12 },
+            children: paisesActivos.map((v) =>
+              c.jsxs(
+                "option",
+                { value: v.id, children: [Ze(v.nombre), " ", v.nombre] },
+                v.id,
+              ),
+            ),
+          }),
+          c.jsx("input", {
+            type: "month",
+            value: mes,
+            onChange: (v) => setMes(v.target.value),
+            style: { ...Pe, width: 160, fontSize: 13 },
+          }),
+          c.jsx("div", { style: { flex: 1 } }),
+          faltantes.length > 0 &&
+            c.jsxs(Te, {
+              primary: !0,
+              disabled: generando,
+              onClick: generar,
+              children: [
+                c.jsx("i", { className: "ti ti-wand" }),
+                " ",
+                items.length
+                  ? "Agregar " + faltantes.length + " actividad(es) nueva(s)"
+                  : "Generar checklist del mes",
+              ],
+            }),
+          items.length > 0 &&
+            c.jsxs(Te, {
+              outline: !0,
+              onClick: descargarPDF,
+              children: [c.jsx("i", { className: "ti ti-file-download" }), " Descargar PDF"],
+            }),
+        ],
+      }),
+      c.jsx("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 12,
+          marginBottom: 16,
+        },
+        children: [
+          {
+            l: "Total actividades",
+            v: total,
+            c: y.primary,
+            bg: y.primaryLight,
+            ic: "ti-list-check",
+          },
+          {
+            l: "Completadas",
+            v: completadas,
+            c: y.success,
+            bg: y.successBg,
+            ic: "ti-circle-check",
+          },
+          {
+            l: "Pendientes",
+            v: pendientes,
+            c: y.warning,
+            bg: y.warningBg,
+            ic: "ti-clock",
+          },
+          {
+            l: "Avance general",
+            v: avance + "%",
+            c: avance >= 80 ? y.success : avance >= 50 ? y.warning : y.danger,
+            bg: avance >= 80 ? y.successBg : avance >= 50 ? y.warningBg : y.dangerBg,
+            ic: "ti-chart-pie",
+          },
+        ].map(({ l: V, v: ne, c: X, bg: z, ic: ce }) =>
+          c.jsxs(
+            "div",
+            {
+              style: {
+                background: y.surface,
+                border: "1px solid " + y.border,
+                borderRadius: 12,
+                padding: "0.9rem 1rem",
+                borderTop: "3px solid " + X,
+              },
+              children: [
+                c.jsxs("div", {
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  },
+                  children: [
+                    c.jsx("span", {
+                      style: {
+                        fontSize: 10,
+                        color: y.text3,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                      },
+                      children: V,
+                    }),
+                    c.jsx("div", {
+                      style: {
+                        width: 30,
+                        height: 30,
+                        borderRadius: 7,
+                        background: z,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                      children: c.jsx("i", {
+                        className: "ti " + ce,
+                        style: { fontSize: 15, color: X },
+                      }),
+                    }),
+                  ],
+                }),
+                c.jsx("div", {
+                  style: { fontSize: 26, fontWeight: 800, color: X },
+                  children: ne,
+                }),
+              ],
+            },
+            V,
+          ),
+        ),
+      }),
+      c.jsx(wt, {
+        children:
+          items.length === 0
+            ? c.jsx("div", {
+                style: { padding: "2.5rem", textAlign: "center", color: y.text3 },
+                children: catalogoActivo.length
+                  ? "Aún no se ha generado el checklist de " +
+                    mesLabel +
+                    " para " +
+                    t(paisId) +
+                    ". Usa el botón 'Generar checklist del mes'."
+                  : "No hay actividades configuradas en el catálogo de cierre. Ve a Configuración → Catálogo de Cierre para agregarlas.",
+              })
+            : c.jsx("div", {
+                style: { overflowX: "auto" },
+                children: c.jsxs("table", {
+                  style: { width: "100%", borderCollapse: "collapse" },
+                  children: [
+                    c.jsx("thead", {
+                      children: c.jsxs("tr", {
+                        children: [
+                          c.jsx(ie, { children: "Categoría" }),
+                          c.jsx(ie, { children: "Actividad" }),
+                          c.jsx(ie, { children: "Responsable" }),
+                          c.jsx(ie, { children: "Frecuencia" }),
+                          c.jsx(ie, { children: "Realizado" }),
+                          c.jsx(ie, { children: "Fecha realizado" }),
+                          c.jsx(ie, { children: "Fecha límite" }),
+                          c.jsx(ie, { children: "Observaciones" }),
+                          c.jsx(ie, { children: "Estado" }),
+                        ],
+                      }),
+                    }),
+                    c.jsx("tbody", {
+                      children: items.map((v) => {
+                        const estado = semaforo(v),
+                          color =
+                            estado === "verde"
+                              ? y.success
+                              : estado === "rojo"
+                                ? y.danger
+                                : y.warning,
+                          label =
+                            estado === "verde"
+                              ? "Completado"
+                              : estado === "rojo"
+                                ? "Vencido"
+                                : "Pendiente";
+                        return c.jsxs(
+                          "tr",
+                          {
+                            style: { borderBottom: "1px solid " + y.border },
+                            children: [
+                              c.jsx(le, {
+                                children: c.jsx(kl, {
+                                  color: y.primary,
+                                  children: v.categoria || "—",
+                                }),
+                              }),
+                              c.jsx(le, {
+                                s: { fontWeight: 600, maxWidth: 240 },
+                                children: v.actividad || "—",
+                              }),
+                              c.jsx(le, {
+                                s: { fontSize: 12, color: y.text2 },
+                                children: v.responsable || "—",
+                              }),
+                              c.jsx(le, {
+                                children: c.jsx(et, { label: v.frecuencia || "Mensual" }),
+                              }),
+                              c.jsx(le, {
+                                children: c.jsx("input", {
+                                  type: "checkbox",
+                                  checked: !!v.realizado,
+                                  onChange: (ev) => {
+                                    const marcado = ev.target.checked;
+                                    actualizar(v, {
+                                      realizado: marcado,
+                                      fechaRealizado: marcado
+                                        ? v.fechaRealizado || hoy
+                                        : null,
+                                    });
+                                  },
+                                  style: { width: 18, height: 18, cursor: "pointer" },
+                                }),
+                              }),
+                              c.jsx(le, {
+                                s: { fontSize: 12, color: y.text2 },
+                                children: v.fechaRealizado || "—",
+                              }),
+                              c.jsx(le, {
+                                children: c.jsx("input", {
+                                  type: "date",
+                                  value: v.fechaLimite || "",
+                                  onChange: (ev) =>
+                                    actualizar(v, { fechaLimite: ev.target.value || null }),
+                                  style: { ...Pe, width: 130, fontSize: 12, padding: "0.3rem 0.5rem" },
+                                }),
+                              }),
+                              c.jsx(le, {
+                                children: c.jsx("input", {
+                                  type: "text",
+                                  value: v.observaciones || "",
+                                  onChange: (ev) =>
+                                    actualizar(v, { observaciones: ev.target.value }),
+                                  placeholder: "Notas…",
+                                  style: { ...Pe, width: 160, fontSize: 12, padding: "0.3rem 0.5rem" },
+                                }),
+                              }),
+                              c.jsx(le, {
+                                children: c.jsxs("span", {
+                                  style: {
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    gap: 5,
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    color: color,
+                                  },
+                                  children: [
+                                    c.jsx("span", {
+                                      style: {
+                                        width: 8,
+                                        height: 8,
+                                        borderRadius: "50%",
+                                        background: color,
+                                        display: "inline-block",
+                                      },
+                                    }),
+                                    label,
+                                  ],
+                                }),
+                              }),
+                            ],
+                          },
+                          v.id,
+                        );
+                      }),
+                    }),
+                  ],
+                }),
+              }),
       }),
     ],
   });
@@ -51652,6 +52379,7 @@ function b6({
       area: "areas",
       responsable: "responsables",
       destinatario: "informe_destinatarios",
+      cierre_actividad: "cierre_actividades",
       proceso: "procesos",
       hallazgo: "hallazgos",
       plan: "planes",
@@ -51663,6 +52391,7 @@ function b6({
       area: "Área",
       responsable: "Responsable",
       destinatario: "Destinatario de Informe",
+      cierre_actividad: "Actividad de Cierre",
       proceso: "Proceso",
       hallazgo: "Hallazgo",
       plan: "Plan de acción",
@@ -51671,7 +52400,7 @@ function b6({
     x = t ? r[p[e]].find((v) => v.id === t) || {} : {},
     [h, _] = ke.useState({ ...x }),
     k = (v, b) => _((S) => ({ ...S, [v]: b })),
-    w = e === "proceso" || e === "hallazgo",
+    w = e === "proceso" || e === "hallazgo" || e === "cierre_actividad",
     m = () => {
       if (e === "usuario" && (!h.usuario || !h.nombre)) {
         alert("Usuario y nombre requeridos");
@@ -51681,12 +52410,19 @@ function b6({
         alert("Contraseña requerida");
         return;
       }
-      if (!["usuario", "hallazgo", "plan"].includes(e) && !h.nombre) {
+      if (
+        !["usuario", "hallazgo", "plan", "cierre_actividad"].includes(e) &&
+        !h.nombre
+      ) {
         alert("Nombre requerido");
         return;
       }
       if (e === "destinatario" && !h.email) {
         alert("Email requerido");
+        return;
+      }
+      if (e === "cierre_actividad" && (!h.categoria || !h.actividad)) {
+        alert("Categoría y actividad requeridas");
         return;
       }
       if (["hallazgo", "plan"].includes(e) && !h.titulo) {
@@ -51840,6 +52576,11 @@ function b6({
                       ic: "ti-file-type-pdf",
                     },
                     { id: "reportes", lb: "Reportes", ic: "ti-chart-bar" },
+                    {
+                      id: "cierre",
+                      lb: "Cierre Mensual",
+                      ic: "ti-calendar-event",
+                    },
                   ].map((v) => {
                     const b = h.permisos || [
                       "dashboard",
@@ -52270,6 +53011,124 @@ function b6({
                     ],
                   }),
                 }),
+              ],
+            }),
+          ],
+        }),
+      e === "cierre_actividad" &&
+        c.jsxs(c.Fragment, {
+          children: [
+            c.jsxs(it, {
+              children: [
+                c.jsx(me, {
+                  label: "Categoría *",
+                  half: !0,
+                  children: c.jsx(Je, {
+                    value: h.categoria,
+                    onChange: (v) => k("categoria", v.toUpperCase()),
+                    placeholder: "Ej: BANCOS",
+                    list: "cierre-categorias",
+                  }),
+                }),
+                c.jsx(me, {
+                  label: "Frecuencia",
+                  half: !0,
+                  children: c.jsxs(Xe, {
+                    value: h.frecuencia || "Mensual",
+                    onChange: (v) => k("frecuencia", v),
+                    children: [
+                      c.jsx("option", { children: "Diaria" }),
+                      c.jsx("option", { children: "Semanal" }),
+                      c.jsx("option", { children: "Quincenal" }),
+                      c.jsx("option", { children: "Mensual" }),
+                    ],
+                  }),
+                }),
+              ],
+            }),
+            c.jsx("datalist", {
+              id: "cierre-categorias",
+              children: [
+                ...new Set(
+                  (r.cierre_actividades || []).map((v) => v.categoria),
+                ),
+              ]
+                .filter(Boolean)
+                .map((v) => c.jsx("option", { value: v }, v)),
+            }),
+            c.jsx(me, {
+              label: "Actividad *",
+              children: c.jsx(Je, {
+                value: h.actividad,
+                onChange: (v) => k("actividad", v),
+                placeholder: "Descripción de la actividad del cierre",
+              }),
+            }),
+            c.jsx(me, {
+              label: "Orden",
+              third: !0,
+              children: c.jsx(Je, {
+                type: "number",
+                value: h.orden ?? "",
+                onChange: (v) => k("orden", v ? parseInt(v) : 0),
+              }),
+            }),
+            c.jsxs("div", {
+              style: {
+                background: "#eff6ff",
+                border: "1px solid #bfdbfe",
+                borderRadius: 10,
+                padding: "0.85rem 1rem",
+                marginTop: 10,
+              },
+              children: [
+                c.jsxs("div", {
+                  style: {
+                    fontSize: 12,
+                    fontWeight: 700,
+                    color: "#1e40af",
+                    marginBottom: 10,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                  },
+                  children: [
+                    c.jsx("i", { className: "ti ti-world" }),
+                    " Responsable por país",
+                  ],
+                }),
+                r.paises
+                  .filter((v) => v.estado === "Activo")
+                  .map((v) =>
+                    c.jsxs(
+                      "div",
+                      {
+                        style: {
+                          display: "grid",
+                          gridTemplateColumns: "140px 1fr",
+                          gap: 8,
+                          alignItems: "center",
+                          marginBottom: 6,
+                        },
+                        children: [
+                          c.jsxs("span", {
+                            style: { fontSize: 12, fontWeight: 600 },
+                            children: [Ze(v.nombre), " ", v.nombre],
+                          }),
+                          c.jsx(Je, {
+                            value: (h.paisResponsables || {})[v.id] || "",
+                            onChange: (E) =>
+                              k("paisResponsables", {
+                                ...(h.paisResponsables || {}),
+                                [v.id]: E,
+                              }),
+                            placeholder: "Nombre del responsable",
+                          }),
+                        ],
+                      },
+                      v.id,
+                    ),
+                  ),
               ],
             }),
           ],
