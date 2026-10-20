@@ -46475,6 +46475,8 @@ const t6 = {
     cierre_actividad: "cierre_actividades",
     cierre_actividades: "cierre_actividades",
     cierre_ejecucion: "cierre_ejecucion",
+    cierre_nota: "cierre_notas_ejecutivas",
+    cierre_notas_ejecutivas: "cierre_notas_ejecutivas",
     proceso: "procesos",
     procesos: "procesos",
     hallazgo: "hallazgos",
@@ -46870,7 +46872,7 @@ function u6() {
     m = ke.useCallback(async (H = !1) => {
       H || a(!0);
       try {
-        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd, ca, ce] =
+        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd, ca, ce, cn] =
           await Promise.all([
             Lr("usuarios"),
             Lr("paises"),
@@ -46887,6 +46889,7 @@ function u6() {
             Lr("informe_destinatarios"),
             Lr("cierre_actividades"),
             Lr("cierre_ejecucion"),
+            Lr("cierre_notas_ejecutivas"),
           ]);
         n({
           usuarios: G,
@@ -46904,6 +46907,7 @@ function u6() {
           informe_destinatarios: pd,
           cierre_actividades: ca,
           cierre_ejecucion: ce,
+          cierre_notas_ejecutivas: cn,
         });
       } catch (G) {
         console.error(G);
@@ -47313,6 +47317,12 @@ function u6() {
                   lb: "Cierre Mensual",
                   color: "#0d9488",
                 },
+                {
+                  id: "cierre_reporte",
+                  ic: "ti-chart-infographic",
+                  lb: "Reporte de Avance",
+                  color: "#0d9488",
+                },
               ],
             },
           ]
@@ -47334,6 +47344,7 @@ function u6() {
       reportes: "Reportes",
       cierre_catalogo: "Catálogo de Cierre",
       cierre: "Cierre Mensual",
+      cierre_reporte: "Reporte de Avance",
     },
     U =
       ((fe = W.flatMap((H) => H.items || []).find((H) => H.id === s)) == null
@@ -47958,6 +47969,13 @@ function u6() {
                   isAdmin: V,
                   onSave: ne,
                   onDelete: X,
+                  showToast: v,
+                }),
+              s === "cierre_reporte" &&
+                c.jsx(ReporteAvanceCierrePage, {
+                  db: r,
+                  pN: b,
+                  onSave: ne,
                   showToast: v,
                 }),
             ],
@@ -48812,6 +48830,7 @@ function g6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, prN: a, hC: s }) {
                   c.jsx(ie, { children: "Email" }),
                   c.jsx(ie, { children: "Especialidad" }),
                   c.jsx(ie, { children: "Países" }),
+                  c.jsx(ie, { children: "Cierre" }),
                   c.jsx(ie, { children: "Hall." }),
                   c.jsx(ie, { children: "Estado" }),
                   n && c.jsx(ie, { children: "Acc." }),
@@ -49457,11 +49476,13 @@ function generarChecklistCierrePDF(paisNombre, mesLabel, items, totals) {
       v.actividad || "",
       v.responsable || "—",
       v.frecuencia || "",
-      v.realizado
+      v.estado === "Completado"
         ? "Completado"
         : v.fechaLimite && v.fechaLimite < hoy
           ? "Vencido"
-          : "Pendiente",
+          : v.estado === "En Proceso"
+            ? "En Proceso"
+            : "Pendiente",
       v.fechaLimite || "—",
       (v.observaciones || "—").substring(0, 40),
     ]),
@@ -49486,7 +49507,14 @@ function generarChecklistCierrePDF(paisNombre, mesLabel, items, totals) {
     didParseCell: (I) => {
       if (I.section === "body" && I.column.index === 4) {
         const U = I.cell.raw,
-          Z = U === "Completado" ? m : U === "Vencido" ? vv : b;
+          Z =
+            U === "Completado"
+              ? m
+              : U === "Vencido"
+                ? vv
+                : U === "En Proceso"
+                  ? h
+                  : b;
         ((I.cell.styles.textColor = Z), (I.cell.styles.fontStyle = "bold"));
       }
     },
@@ -49535,12 +49563,16 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
       ),
     hoy = new Date().toISOString().split("T")[0],
     semaforo = (v) => {
-      if (v.realizado) return "verde";
-      if (v.fechaLimite && v.fechaLimite < hoy) return "rojo";
-      return "amarillo";
+      if (v.estado === "Completado")
+        return { estado: "verde", label: "Completado" };
+      if (v.fechaLimite && v.fechaLimite < hoy)
+        return { estado: "rojo", label: "Vencido" };
+      if (v.estado === "En Proceso")
+        return { estado: "azul", label: "En Proceso" };
+      return { estado: "amarillo", label: "Pendiente" };
     },
     total = items.length,
-    completadas = items.filter((v) => v.realizado).length,
+    completadas = items.filter((v) => v.estado === "Completado").length,
     pendientes = total - completadas,
     avance = total ? Math.round((completadas / total) * 100) : 0,
     mesLabel = (() => {
@@ -49584,7 +49616,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
             responsable: responsable,
             frecuencia: v.frecuencia || "Mensual",
             orden: v.orden || 0,
-            realizado: !1,
+            estado: "Pendiente",
             fechaRealizado: null,
             fechaLimite: null,
             observaciones: "",
@@ -49787,29 +49819,26 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
                           c.jsx(ie, { children: "Actividad" }),
                           c.jsx(ie, { children: "Responsable" }),
                           c.jsx(ie, { children: "Frecuencia" }),
-                          c.jsx(ie, { children: "Realizado" }),
+                          c.jsx(ie, { children: "Estado" }),
                           c.jsx(ie, { children: "Fecha realizado" }),
                           c.jsx(ie, { children: "Fecha límite" }),
                           c.jsx(ie, { children: "Observaciones" }),
-                          c.jsx(ie, { children: "Estado" }),
+                          c.jsx(ie, { children: "Semáforo" }),
                         ],
                       }),
                     }),
                     c.jsx("tbody", {
                       children: items.map((v) => {
-                        const estado = semaforo(v),
+                        const sf = semaforo(v),
                           color =
-                            estado === "verde"
+                            sf.estado === "verde"
                               ? y.success
-                              : estado === "rojo"
+                              : sf.estado === "rojo"
                                 ? y.danger
-                                : y.warning,
-                          label =
-                            estado === "verde"
-                              ? "Completado"
-                              : estado === "rojo"
-                                ? "Vencido"
-                                : "Pendiente";
+                                : sf.estado === "azul"
+                                  ? y.primary
+                                  : y.warning,
+                          label = sf.label;
                         return c.jsxs(
                           "tr",
                           {
@@ -49833,19 +49862,45 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
                                 children: c.jsx(et, { label: v.frecuencia || "Mensual" }),
                               }),
                               c.jsx(le, {
-                                children: c.jsx("input", {
-                                  type: "checkbox",
-                                  checked: !!v.realizado,
+                                children: c.jsxs("select", {
+                                  value: v.estado || "Pendiente",
                                   onChange: (ev) => {
-                                    const marcado = ev.target.checked;
+                                    const nuevo = ev.target.value;
                                     actualizar(v, {
-                                      realizado: marcado,
-                                      fechaRealizado: marcado
-                                        ? v.fechaRealizado || hoy
-                                        : null,
+                                      estado: nuevo,
+                                      fechaRealizado:
+                                        nuevo === "Completado"
+                                          ? v.fechaRealizado || hoy
+                                          : null,
                                     });
                                   },
-                                  style: { width: 18, height: 18, cursor: "pointer" },
+                                  style: {
+                                    ...Pe,
+                                    width: 130,
+                                    fontSize: 12,
+                                    padding: "0.3rem 0.5rem",
+                                    fontWeight: 600,
+                                    color:
+                                      (v.estado || "Pendiente") === "Completado"
+                                        ? y.success
+                                        : v.estado === "En Proceso"
+                                          ? y.primary
+                                          : y.warning,
+                                  },
+                                  children: [
+                                    c.jsx("option", {
+                                      value: "Pendiente",
+                                      children: "Pendiente",
+                                    }),
+                                    c.jsx("option", {
+                                      value: "En Proceso",
+                                      children: "En Proceso",
+                                    }),
+                                    c.jsx("option", {
+                                      value: "Completado",
+                                      children: "Completado",
+                                    }),
+                                  ],
                                 }),
                               }),
                               c.jsx(le, {
@@ -49904,6 +49959,540 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
                   ],
                 }),
               }),
+      }),
+    ],
+  });
+}
+function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
+  const [mes, setMes] = ke.useState(() => {
+      const d2 = new Date();
+      return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
+    }),
+    items = (e.cierre_ejecucion || []).filter((v) => v.mes === mes),
+    hoy = new Date().toISOString().split("T")[0],
+    clasificar = (v) => {
+      if (v.estado === "Completado") return "completado";
+      if (v.fechaLimite && v.fechaLimite < hoy) return "vencido";
+      if (v.estado === "En Proceso") return "enProceso";
+      return "pendiente";
+    },
+    total = items.length,
+    completadas = items.filter((v) => clasificar(v) === "completado").length,
+    enProceso = items.filter((v) => clasificar(v) === "enProceso").length,
+    vencidas = items.filter((v) => clasificar(v) === "vencido").length,
+    pendientes = items.filter((v) => clasificar(v) === "pendiente").length,
+    noCompletadas = total - completadas,
+    avance = total ? Math.round((completadas / total) * 100) : 0,
+    mesLabel = (() => {
+      const [anio, mesNum] = mes.split("-"),
+        nombres = [
+          "Enero",
+          "Febrero",
+          "Marzo",
+          "Abril",
+          "Mayo",
+          "Junio",
+          "Julio",
+          "Agosto",
+          "Septiembre",
+          "Octubre",
+          "Noviembre",
+          "Diciembre",
+        ];
+      return nombres[parseInt(mesNum) - 1] + " " + anio;
+    })(),
+    notaExistente = (e.cierre_notas_ejecutivas || []).find(
+      (v) => v.mes === mes,
+    ),
+    [nota, setNota] = ke.useState(""),
+    [guardandoNota, setGuardandoNota] = ke.useState(!1);
+  ke.useEffect(() => {
+    setNota((notaExistente && notaExistente.nota) || "");
+  }, [mes, notaExistente && notaExistente.nota]);
+  const guardarNota = async () => {
+    setGuardandoNota(!0);
+    try {
+      await i("cierre_nota", notaExistente ? notaExistente.id : null, {
+        mes: mes,
+        nota: nota,
+      });
+      s("Nota guardada ✓");
+    } catch (err) {
+      s("Error: " + err.message, !0);
+    }
+    setGuardandoNota(!1);
+  };
+  const estados = [
+      {
+        key: "completado",
+        label: "Completado",
+        count: completadas,
+        color: y.success,
+        ic: "ti-circle-check",
+      },
+      {
+        key: "enProceso",
+        label: "En Proceso",
+        count: enProceso,
+        color: y.primary,
+        ic: "ti-progress",
+      },
+      {
+        key: "pendiente",
+        label: "Pendiente",
+        count: pendientes,
+        color: y.warning,
+        ic: "ti-clock",
+      },
+      {
+        key: "vencido",
+        label: "Vencido",
+        count: vencidas,
+        color: y.danger,
+        ic: "ti-alert-triangle",
+      },
+    ],
+    maxCount = Math.max(...estados.map((x) => x.count), 1);
+  let acumulado = 0;
+  const segmentos = estados
+      .filter((x) => x.count > 0)
+      .map((x) => {
+        const pct = total ? (x.count / total) * 100 : 0,
+          desde = acumulado;
+        acumulado += pct;
+        return x.color + " " + desde + "% " + acumulado + "%";
+      }),
+    gradiente = segmentos.length
+      ? "conic-gradient(" + segmentos.join(", ") + ")"
+      : "conic-gradient(" + y.border + " 0% 100%)";
+  return c.jsxs(c.Fragment, {
+    children: [
+      c.jsxs("div", {
+        style: {
+          display: "flex",
+          gap: 10,
+          marginBottom: 16,
+          alignItems: "center",
+          flexWrap: "wrap",
+        },
+        children: [
+          c.jsx("input", {
+            type: "month",
+            value: mes,
+            onChange: (v) => setMes(v.target.value),
+            style: { ...Pe, width: 160, fontSize: 13 },
+          }),
+          c.jsxs("span", {
+            style: { fontSize: 12, color: y.text3 },
+            children: [
+              "Consolidado de los 5 países · ",
+              total,
+              " actividad(es) en ",
+              mesLabel,
+            ],
+          }),
+        ],
+      }),
+      c.jsx("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: "repeat(4,1fr)",
+          gap: 12,
+          marginBottom: 16,
+        },
+        children: [
+          {
+            l: "Total Tareas",
+            v: total,
+            c: y.primary,
+            bg: y.primaryLight,
+            ic: "ti-list-check",
+          },
+          {
+            l: "Completadas",
+            v: completadas,
+            c: y.success,
+            bg: y.successBg,
+            ic: "ti-circle-check",
+          },
+          {
+            l: "Pendientes",
+            v: noCompletadas,
+            c: y.warning,
+            bg: y.warningBg,
+            ic: "ti-clock",
+          },
+          {
+            l: "Avance General",
+            v: avance + "%",
+            c: avance >= 80 ? y.success : avance >= 50 ? y.warning : y.danger,
+            bg:
+              avance >= 80
+                ? y.successBg
+                : avance >= 50
+                  ? y.warningBg
+                  : y.dangerBg,
+            ic: "ti-chart-pie",
+          },
+        ].map(({ l: V, v: ne, c: X, bg: z, ic: ce }) =>
+          c.jsxs(
+            "div",
+            {
+              style: {
+                background: y.surface,
+                border: "1px solid " + y.border,
+                borderRadius: 12,
+                padding: "0.9rem 1rem",
+                borderTop: "3px solid " + X,
+              },
+              children: [
+                c.jsxs("div", {
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 8,
+                  },
+                  children: [
+                    c.jsx("span", {
+                      style: {
+                        fontSize: 10,
+                        color: y.text3,
+                        fontWeight: 700,
+                        textTransform: "uppercase",
+                      },
+                      children: V,
+                    }),
+                    c.jsx("div", {
+                      style: {
+                        width: 30,
+                        height: 30,
+                        borderRadius: 7,
+                        background: z,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                      children: c.jsx("i", {
+                        className: "ti " + ce,
+                        style: { fontSize: 15, color: X },
+                      }),
+                    }),
+                  ],
+                }),
+                c.jsx("div", {
+                  style: { fontSize: 26, fontWeight: 800, color: X },
+                  children: ne,
+                }),
+              ],
+            },
+            V,
+          ),
+        ),
+      }),
+      c.jsxs("div", {
+        style: {
+          display: "grid",
+          gridTemplateColumns: "1.3fr 1fr",
+          gap: 16,
+          marginBottom: 16,
+        },
+        children: [
+          c.jsxs(wt, {
+            mb: 0,
+            children: [
+              c.jsx(Bt, { left: "Comparativo de Avance", icon: "ti-chart-bar" }),
+              c.jsx("div", {
+                style: { padding: "1.1rem 1.25rem" },
+                children:
+                  total === 0
+                    ? c.jsx("div", {
+                        style: {
+                          color: y.text3,
+                          fontSize: 13,
+                          textAlign: "center",
+                          padding: "2rem 0",
+                        },
+                        children:
+                          "No hay datos de Cierre Mensual generados para " +
+                          mesLabel +
+                          " todavía.",
+                      })
+                    : estados.map((x) =>
+                        c.jsxs(
+                          "div",
+                          {
+                            style: { marginBottom: 14 },
+                            children: [
+                              c.jsxs("div", {
+                                style: {
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  fontSize: 12,
+                                  marginBottom: 4,
+                                },
+                                children: [
+                                  c.jsxs("span", {
+                                    style: {
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 5,
+                                      fontWeight: 600,
+                                      color: y.text2,
+                                    },
+                                    children: [
+                                      c.jsx("i", {
+                                        className: "ti " + x.ic,
+                                        style: { color: x.color, fontSize: 14 },
+                                      }),
+                                      x.label,
+                                    ],
+                                  }),
+                                  c.jsxs("span", {
+                                    style: { fontWeight: 700, color: x.color },
+                                    children: [
+                                      x.count,
+                                      total
+                                        ? " (" +
+                                          Math.round((x.count / total) * 100) +
+                                          "%)"
+                                        : "",
+                                    ],
+                                  }),
+                                ],
+                              }),
+                              c.jsx("div", {
+                                title: x.label + ": " + x.count,
+                                style: {
+                                  height: 10,
+                                  background: y.border,
+                                  borderRadius: 5,
+                                  overflow: "hidden",
+                                },
+                                children: c.jsx("div", {
+                                  style: {
+                                    height: "100%",
+                                    width: (x.count / maxCount) * 100 + "%",
+                                    background: x.color,
+                                    borderRadius: 5,
+                                    transition: "width .3s",
+                                  },
+                                }),
+                              }),
+                            ],
+                          },
+                          x.key,
+                        ),
+                      ),
+              }),
+            ],
+          }),
+          c.jsxs(wt, {
+            mb: 0,
+            children: [
+              c.jsx(Bt, { left: "Estado del Proceso", icon: "ti-chart-donut" }),
+              c.jsxs("div", {
+                style: {
+                  padding: "1.25rem",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  gap: 16,
+                },
+                children: [
+                  c.jsx("div", {
+                    style: {
+                      width: 160,
+                      height: 160,
+                      borderRadius: "50%",
+                      background: gradiente,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    },
+                    children: c.jsxs("div", {
+                      style: {
+                        width: 104,
+                        height: 104,
+                        borderRadius: "50%",
+                        background: y.surface,
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      },
+                      children: [
+                        c.jsxs("div", {
+                          style: { fontSize: 24, fontWeight: 800, color: y.text },
+                          children: [avance, "%"],
+                        }),
+                        c.jsx("div", {
+                          style: {
+                            fontSize: 10,
+                            color: y.text3,
+                            fontWeight: 700,
+                            textTransform: "uppercase",
+                          },
+                          children: "Avance",
+                        }),
+                      ],
+                    }),
+                  }),
+                  c.jsx("div", {
+                    style: {
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 6,
+                      width: "100%",
+                    },
+                    children: estados.map((x) =>
+                      c.jsxs(
+                        "div",
+                        {
+                          style: {
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            fontSize: 12,
+                          },
+                          children: [
+                            c.jsx("span", {
+                              style: {
+                                width: 10,
+                                height: 10,
+                                borderRadius: "50%",
+                                background: x.color,
+                                flexShrink: 0,
+                                display: "inline-block",
+                              },
+                            }),
+                            c.jsx("span", {
+                              style: { flex: 1, color: y.text2 },
+                              children: x.label,
+                            }),
+                            c.jsxs("span", {
+                              style: { fontWeight: 700, color: y.text },
+                              children: [
+                                x.count,
+                                total
+                                  ? " · " + Math.round((x.count / total) * 100) + "%"
+                                  : "",
+                              ],
+                            }),
+                          ],
+                        },
+                        x.key,
+                      ),
+                    ),
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      c.jsxs(wt, {
+        children: [
+          c.jsx(Bt, { left: "Resumen por estado", icon: "ti-table" }),
+          c.jsx("div", {
+            style: { overflowX: "auto" },
+            children: c.jsxs("table", {
+              style: { width: "100%", borderCollapse: "collapse" },
+              children: [
+                c.jsx("thead", {
+                  children: c.jsxs("tr", {
+                    children: [
+                      c.jsx(ie, { children: "Estado" }),
+                      c.jsx(ie, { children: "Cantidad" }),
+                      c.jsx(ie, { children: "% del total" }),
+                    ],
+                  }),
+                }),
+                c.jsx("tbody", {
+                  children: estados.map((x) =>
+                    c.jsxs(
+                      "tr",
+                      {
+                        style: { borderBottom: "1px solid " + y.border },
+                        children: [
+                          c.jsx(le, {
+                            children: c.jsxs("span", {
+                              style: {
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 6,
+                                fontWeight: 600,
+                                color: x.color,
+                              },
+                              children: [
+                                c.jsx("span", {
+                                  style: {
+                                    width: 8,
+                                    height: 8,
+                                    borderRadius: "50%",
+                                    background: x.color,
+                                    display: "inline-block",
+                                  },
+                                }),
+                                x.label,
+                              ],
+                            }),
+                          }),
+                          c.jsx(le, { s: { fontWeight: 700 }, children: x.count }),
+                          c.jsx(le, {
+                            s: { color: y.text2 },
+                            children: total
+                              ? Math.round((x.count / total) * 100) + "%"
+                              : "—",
+                          }),
+                        ],
+                      },
+                      x.key,
+                    ),
+                  ),
+                }),
+              ],
+            }),
+          }),
+        ],
+      }),
+      c.jsxs(wt, {
+        children: [
+          c.jsx(Bt, { left: "Resumen Ejecutivo", icon: "ti-notes" }),
+          c.jsxs("div", {
+            style: { padding: "1.1rem 1.25rem" },
+            children: [
+              c.jsx("textarea", {
+                rows: 5,
+                value: nota,
+                onChange: (v) => setNota(v.target.value),
+                placeholder:
+                  "Escribe aquí tus observaciones y conclusiones del avance de " +
+                  mesLabel +
+                  "…",
+                style: {
+                  ...Pe,
+                  minHeight: 120,
+                  resize: "vertical",
+                  lineHeight: 1.6,
+                  fontFamily: "inherit",
+                },
+              }),
+              c.jsx("div", {
+                style: { display: "flex", justifyContent: "flex-end", marginTop: 10 },
+                children: c.jsxs(Te, {
+                  primary: !0,
+                  disabled: guardandoNota,
+                  onClick: guardarNota,
+                  children: [
+                    c.jsx("i", { className: "ti ti-device-floppy" }),
+                    " Guardar nota",
+                  ],
+                }),
+              }),
+            ],
+          }),
+        ],
       }),
     ],
   });
@@ -52817,6 +53406,49 @@ function b6({
                             const S = h.paisIds || [];
                             k(
                               "paisIds",
+                              b.target.checked
+                                ? [...S, v.id]
+                                : S.filter((E) => E !== v.id),
+                            );
+                          },
+                        }),
+                        Ze(v.nombre),
+                        " ",
+                        v.nombre,
+                      ],
+                    },
+                    v.id,
+                  ),
+                ),
+              }),
+            }),
+            c.jsx(me, {
+              label: "Responsable de Cierre Mensual en",
+              children: c.jsx("div", {
+                style: { display: "flex", flexWrap: "wrap", gap: 8 },
+                children: r.paises.map((v) =>
+                  c.jsxs(
+                    "label",
+                    {
+                      style: {
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: 12,
+                        cursor: "pointer",
+                        padding: "3px 8px",
+                        borderRadius: 6,
+                        background: "#f0fdfa",
+                        border: "1px solid #99f6e4",
+                      },
+                      children: [
+                        c.jsx("input", {
+                          type: "checkbox",
+                          checked: (h.paisesCierre || []).includes(v.id),
+                          onChange: (b) => {
+                            const S = h.paisesCierre || [];
+                            k(
+                              "paisesCierre",
                               b.target.checked
                                 ? [...S, v.id]
                                 : S.filter((E) => E !== v.id),
