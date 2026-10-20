@@ -49983,6 +49983,33 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
     pendientes = items.filter((v) => clasificar(v) === "pendiente").length,
     noCompletadas = total - completadas,
     avance = total ? Math.round((completadas / total) * 100) : 0,
+    paisesActivos = (e.paises || []).filter((v) => v.estado === "Activo"),
+    porPais = paisesActivos.map((v) => {
+      const its = items.filter((x) => x.paisId === v.id),
+        tot = its.length,
+        comp = its.filter((x) => clasificar(x) === "completado").length;
+      return {
+        pais: v,
+        total: tot,
+        completadas: comp,
+        avance: tot ? Math.round((comp / tot) * 100) : 0,
+      };
+    }),
+    porAuditor = (() => {
+      const grupos = {};
+      items.forEach((v) => {
+        const nombre = (v.responsable || "").trim() || "Sin responsable asignado";
+        (grupos[nombre] || (grupos[nombre] = { nombre, total: 0, completadas: 0 }),
+          grupos[nombre].total++,
+          clasificar(v) === "completado" && grupos[nombre].completadas++);
+      });
+      return Object.values(grupos)
+        .map((g) => ({
+          ...g,
+          avance: g.total ? Math.round((g.completadas / g.total) * 100) : 0,
+        }))
+        .sort((a2, b2) => b2.total - a2.total);
+    })(),
     mesLabel = (() => {
       const [anio, mesNum] = mes.split("-"),
         nombres = [
@@ -50189,6 +50216,162 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
             V,
           ),
         ),
+      }),
+      c.jsxs(wt, {
+        children: [
+          c.jsx(Bt, { left: "Avance por país", icon: "ti-world" }),
+          c.jsx("div", {
+            style: {
+              padding: "1rem 1.25rem",
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))",
+              gap: 12,
+            },
+            children: porPais.map(({ pais: v, total: tot, completadas: comp, avance: av }) =>
+              c.jsxs(
+                "div",
+                {
+                  style: {
+                    border: "1px solid " + y.border,
+                    borderRadius: 10,
+                    overflow: "hidden",
+                    background: y.surface,
+                  },
+                  children: [
+                    c.jsxs("div", {
+                      style: {
+                        background: "#000e8b",
+                        color: "#fff",
+                        padding: "0.5rem 0.75rem",
+                        fontSize: 12,
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                      },
+                      children: [Ze(v.nombre), " ", v.nombre],
+                    }),
+                    c.jsxs("div", {
+                      style: { padding: "0.75rem" },
+                      children: [
+                        c.jsx("div", {
+                          style: {
+                            height: 8,
+                            background: y.border,
+                            borderRadius: 4,
+                            overflow: "hidden",
+                            marginBottom: 8,
+                          },
+                          children: c.jsx("div", {
+                            style: {
+                              height: "100%",
+                              width: av + "%",
+                              borderRadius: 4,
+                              background:
+                                av >= 80
+                                  ? y.success
+                                  : av >= 50
+                                    ? y.warning
+                                    : tot
+                                      ? y.danger
+                                      : y.border,
+                              transition: "width .3s",
+                            },
+                          }),
+                        }),
+                        c.jsxs("div", {
+                          style: {
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 11.5,
+                            color: y.text2,
+                          },
+                          children: [
+                            c.jsxs("span", { children: [comp, "/", tot, " completadas"] }),
+                            c.jsxs("span", {
+                              style: { fontWeight: 700, color: y.text },
+                              children: [av, "%"],
+                            }),
+                          ],
+                        }),
+                      ],
+                    }),
+                  ],
+                },
+                v.id,
+              ),
+            ),
+          }),
+        ],
+      }),
+      c.jsxs(wt, {
+        children: [
+          c.jsx(Bt, { left: "Avance por auditor", icon: "ti-user-check" }),
+          porAuditor.length === 0
+            ? c.jsx("div", {
+                style: {
+                  padding: "2rem",
+                  textAlign: "center",
+                  color: y.text3,
+                  fontSize: 13,
+                },
+                children: "Aún no hay actividad registrada por auditor este mes.",
+              })
+            : c.jsx("div", {
+                style: { padding: "0.5rem 1.25rem 1rem" },
+                children: porAuditor.map((g) =>
+                  c.jsxs(
+                    "div",
+                    {
+                      style: { marginBottom: 12 },
+                      children: [
+                        c.jsxs("div", {
+                          style: {
+                            display: "flex",
+                            justifyContent: "space-between",
+                            fontSize: 12,
+                            marginBottom: 4,
+                          },
+                          children: [
+                            c.jsx("span", {
+                              style: { fontWeight: 600, color: y.text2 },
+                              children: g.nombre,
+                            }),
+                            c.jsxs("span", {
+                              style: { fontWeight: 700, color: y.text },
+                              children: [g.completadas, "/", g.total, " · ", g.avance, "%"],
+                            }),
+                          ],
+                        }),
+                        c.jsx("div", {
+                          style: {
+                            height: 8,
+                            background: y.border,
+                            borderRadius: 4,
+                            overflow: "hidden",
+                          },
+                          children: c.jsx("div", {
+                            style: {
+                              height: "100%",
+                              width: g.avance + "%",
+                              borderRadius: 4,
+                              background:
+                                g.avance >= 80
+                                  ? y.success
+                                  : g.avance >= 50
+                                    ? y.warning
+                                    : y.danger,
+                              transition: "width .3s",
+                            },
+                          }),
+                        }),
+                      ],
+                    },
+                    g.nombre,
+                  ),
+                ),
+              }),
+        ],
       }),
       c.jsxs("div", {
         style: {
