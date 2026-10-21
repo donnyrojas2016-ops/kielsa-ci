@@ -47034,9 +47034,19 @@ function u6() {
     },
     ce = (H) => {
       try {
-        const G = bt.book_new();
+        const G = bt.book_new(),
+          ceAud =
+            e && e.rol === "auditor" && e.auditorId
+              ? Number(e.auditorId)
+              : null,
+          ceHz = ceAud
+            ? (r.hallazgos || []).filter((P) => P.auditorId === ceAud)
+            : r.hallazgos || [],
+          cePl = ceAud
+            ? (r.planes || []).filter((P) => P.auditorId === ceAud)
+            : r.planes || [];
         if (H === "hallazgos" || H === "ambos") {
-          const re = (r.hallazgos || []).map((P) => {
+          const re = ceHz.map((P) => {
               let We = "";
               try {
                 const Ne = z(P.evidencia);
@@ -47083,8 +47093,10 @@ function u6() {
             bt.book_append_sheet(G, Ae, "Hallazgos"));
         }
         if (H === "planes" || H === "ambos") {
-          const re = (r.planes || []).map((P) => {
-              const We = r.hallazgos.find((Ne) => Ne.id === P.hallazgoId);
+          const re = cePl.map((P) => {
+              const We = (r.hallazgos || []).find(
+                (Ne) => Ne.id === P.hallazgoId,
+              );
               return {
                 "Titulo plan": z(P.titulo),
                 Hallazgo: z(M(P.hallazgoId)) + " - " + z(O(P.hallazgoId)),
@@ -47879,6 +47891,7 @@ function u6() {
               s === "procesos" &&
                 c.jsx(y6, {
                   db: r,
+                  session: e,
                   oE: (H) => d({ t: "proceso", id: H }),
                   oD: (H, G) =>
                     d({ t: "_del", table: "procesos", id: H, name: G }),
@@ -47940,6 +47953,7 @@ function u6() {
               s === "informes" &&
                 c.jsx(B6, {
                   db: r,
+                  session: e,
                   pN: b,
                   aN: S,
                   prN: E,
@@ -47951,6 +47965,7 @@ function u6() {
               s === "reportes" &&
                 c.jsx(E6, {
                   db: r,
+                  session: e,
                   pN: b,
                   aN: S,
                   prN: E,
@@ -47974,6 +47989,8 @@ function u6() {
               s === "cierre_reporte" &&
                 c.jsx(ReporteAvanceCierrePage, {
                   db: r,
+                  session: e,
+                  isAdmin: V,
                   pN: b,
                   onSave: ne,
                   showToast: v,
@@ -48874,6 +48891,24 @@ function g6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, prN: a, hC: s }) {
                           c.jsxs(kl, { children: [Ze(i(l)), " ", i(l)] }, l),
                         ),
                       }),
+                      c.jsx(le, {
+                        children:
+                          (o.paisesCierre || []).length === 0
+                            ? c.jsx("span", {
+                                style: { color: y.text3, fontSize: 11 },
+                                children: "—",
+                              })
+                            : (o.paisesCierre || []).map((l) =>
+                                c.jsxs(
+                                  kl,
+                                  {
+                                    color: "#0d9488",
+                                    children: [Ze(i(l)), " ", i(l)],
+                                  },
+                                  l,
+                                ),
+                              ),
+                      }),
                       c.jsx(le, { s: { fontWeight: 600 }, children: s(o.id) }),
                       c.jsx(le, { children: c.jsx(et, { label: o.estado }) }),
                       n &&
@@ -49546,8 +49581,21 @@ function generarChecklistCierrePDF(paisNombre, mesLabel, items, totals) {
 }
 function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, onDelete: a, showToast: s }) {
   const paisesActivos = e.paises.filter((v) => v.estado === "Activo"),
+    cmAuditorPropio =
+      !n && r && r.auditorId
+        ? e.auditores.find((v) => v.id === Number(r.auditorId))
+        : null,
+    paisesPermitidos = n
+      ? paisesActivos
+      : cmAuditorPropio
+        ? paisesActivos.filter((v) =>
+            (cmAuditorPropio.paisesCierre || [])
+              .map(Number)
+              .includes(v.id),
+          )
+        : [],
     [paisId, setPaisId] = ke.useState(() =>
-      paisesActivos[0] ? paisesActivos[0].id : null,
+      paisesPermitidos[0] ? paisesPermitidos[0].id : null,
     ),
     [mes, setMes] = ke.useState(() => {
       const d2 = new Date();
@@ -49651,6 +49699,36 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         avance,
       });
     };
+  if (!n && paisesPermitidos.length === 0)
+    return c.jsxs("div", {
+      style: {
+        padding: "2.5rem 2rem",
+        textAlign: "center",
+        background: y.warningBg,
+        border: "1px solid " + y.warning,
+        borderRadius: 12,
+      },
+      children: [
+        c.jsx("i", {
+          className: "ti ti-world-off",
+          style: {
+            fontSize: 36,
+            color: y.warning,
+            display: "block",
+            marginBottom: 10,
+          },
+        }),
+        c.jsx("div", {
+          style: { fontWeight: 700, color: y.warning, marginBottom: 4 },
+          children: "Tu usuario no tiene un país de cierre asignado",
+        }),
+        c.jsx("div", {
+          style: { color: y.text2, fontSize: 13 },
+          children:
+            "Contacta al administrador para que te asigne un país en Configuración → Auditores.",
+        }),
+      ],
+    });
   return c.jsxs(c.Fragment, {
     children: [
       c.jsxs("div", {
@@ -49666,7 +49744,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
             value: paisId ?? "",
             onChange: (v) => setPaisId(parseInt(v.target.value)),
             style: { ...Pe, width: 200, fontSize: 12 },
-            children: paisesActivos.map((v) =>
+            children: paisesPermitidos.map((v) =>
               c.jsxs(
                 "option",
                 { value: v.id, children: [Ze(v.nombre), " ", v.nombre] },
@@ -49963,12 +50041,25 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     ],
   });
 }
-function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
-  const [mes, setMes] = ke.useState(() => {
+function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s, session: rac6s, isAdmin: rac6admin }) {
+  const rac6AuditorPropio =
+      !rac6admin && rac6s && rac6s.auditorId
+        ? e.auditores.find((v) => v.id === Number(rac6s.auditorId))
+        : null,
+    rac6PaisesPermitidos = rac6admin
+      ? null
+      : (rac6AuditorPropio ? rac6AuditorPropio.paisesCierre || [] : []).map(
+          Number,
+        ),
+    [mes, setMes] = ke.useState(() => {
       const d2 = new Date();
       return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
     }),
-    items = (e.cierre_ejecucion || []).filter((v) => v.mes === mes),
+    items = (e.cierre_ejecucion || []).filter(
+      (v) =>
+        v.mes === mes &&
+        (rac6admin || (rac6PaisesPermitidos || []).includes(v.paisId)),
+    ),
     hoy = new Date().toISOString().split("T")[0],
     clasificar = (v) => {
       if (v.estado === "Completado") return "completado";
@@ -49983,7 +50074,11 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
     pendientes = items.filter((v) => clasificar(v) === "pendiente").length,
     noCompletadas = total - completadas,
     avance = total ? Math.round((completadas / total) * 100) : 0,
-    paisesActivos = (e.paises || []).filter((v) => v.estado === "Activo"),
+    paisesActivos = (e.paises || [])
+      .filter((v) => v.estado === "Activo")
+      .filter(
+        (v) => rac6admin || (rac6PaisesPermitidos || []).includes(v.id),
+      ),
     porPais = paisesActivos.map((v) => {
       const its = items.filter((x) => x.paisId === v.id),
         tot = its.length,
@@ -50092,6 +50187,36 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s }) {
     gradiente = segmentos.length
       ? "conic-gradient(" + segmentos.join(", ") + ")"
       : "conic-gradient(" + y.border + " 0% 100%)";
+  if (!rac6admin && (rac6PaisesPermitidos || []).length === 0)
+    return c.jsxs("div", {
+      style: {
+        padding: "2.5rem 2rem",
+        textAlign: "center",
+        background: y.warningBg,
+        border: "1px solid " + y.warning,
+        borderRadius: 12,
+      },
+      children: [
+        c.jsx("i", {
+          className: "ti ti-world-off",
+          style: {
+            fontSize: 36,
+            color: y.warning,
+            display: "block",
+            marginBottom: 10,
+          },
+        }),
+        c.jsx("div", {
+          style: { fontWeight: 700, color: y.warning, marginBottom: 4 },
+          children: "Tu usuario no tiene un país de cierre asignado",
+        }),
+        c.jsx("div", {
+          style: { color: y.text2, fontSize: 13 },
+          children:
+            "Contacta al administrador para que te asigne un país en Configuración → Auditores.",
+        }),
+      ],
+    });
   return c.jsxs(c.Fragment, {
     children: [
       c.jsxs("div", {
@@ -50828,12 +50953,22 @@ function v6(e, t, r) {
     alert("Error: " + n.message);
   }
 }
-function y6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
+function y6({ db: e, session: j6s, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
   const [o, l] = ke.useState(""),
     [u, f] = ke.useState(""),
     [d, p] = ke.useState(""),
     [g, x] = ke.useState("compacta");
-  let h = e.procesos.filter((_) => _.activo !== false);
+  let j6base = e.procesos.filter((_) => _.activo !== false);
+  if (j6s && j6s.rol === "auditor" && j6s.auditorId) {
+    const j6a = Number(j6s.auditorId);
+    j6base = j6base.filter(
+      (_) =>
+        (_.auditorIds || []).map(Number).includes(j6a) ||
+        (_.paisAuditores &&
+          Object.values(_.paisAuditores).map(Number).includes(j6a)),
+    );
+  }
+  let h = j6base;
   return (
     o &&
       (h = h.filter((_) =>
@@ -50847,11 +50982,7 @@ function y6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
     c.jsxs(wt, {
       children: [
         c.jsx(Bt, {
-          left:
-            h.length +
-            " / " +
-            e.procesos.filter((_) => _.activo !== false).length +
-            " procesos",
+          left: h.length + " / " + j6base.length + " procesos",
           icon: "ti-git-branch",
           right: c.jsxs(c.Fragment, {
             children: [
@@ -52542,6 +52673,7 @@ function S6(e, t, r, n, i, a, s, o, l, u) {
 }
 function E6({
   db: e,
+  session: e6s,
   pN: t,
   aN: r,
   prN: n,
@@ -52552,11 +52684,12 @@ function E6({
   onExport: l,
   onRefresh: u,
 }) {
+  const e6IsAud = !!(e6s && e6s.rol === "auditor" && e6s.auditorId);
   const [f, d] = ke.useState(() => {
       const E = new Date();
       return E.getFullYear() + "-" + String(E.getMonth() + 1).padStart(2, "0");
     }),
-    [p, g] = ke.useState([]),
+    [p, g] = ke.useState(e6IsAud ? [String(e6s.auditorId)] : []),
     [x, h] = ke.useState(""),
     _ = () => {
       try {
@@ -52833,30 +52966,46 @@ function E6({
                     onChange: (E) => d(E.target.value),
                     style: { ...Pe, width: 150, fontSize: 12 },
                   }),
-                  c.jsxs("select", {
-                    multiple: !0,
-                    value: p,
-                    onChange: (E) => {
-                      g(
-                        Array.from(E.target.selectedOptions).map(
-                          (M) => M.value,
-                        ),
-                      );
-                    },
-                    size: 3,
-                    style: { ...Pe, width: 200, fontSize: 12, height: 70 },
-                    title: "Ctrl+clic para varios auditores",
-                    children: [
-                      c.jsx("option", { value: "", children: "— Todos —" }),
-                      e.auditores.map((E) =>
-                        c.jsx(
-                          "option",
-                          { value: E.id, children: E.nombre },
-                          E.id,
-                        ),
-                      ),
-                    ],
-                  }),
+                  e6IsAud
+                    ? c.jsx("div", {
+                        style: {
+                          ...Pe,
+                          width: 200,
+                          fontSize: 12,
+                          display: "flex",
+                          alignItems: "center",
+                          background: y.grayBg,
+                          color: y.text2,
+                        },
+                        children:
+                          (e.auditores.find(
+                            (m) => m.id === Number(e6s.auditorId),
+                          ) || {}).nombre || e6s.nombre,
+                      })
+                    : c.jsxs("select", {
+                        multiple: !0,
+                        value: p,
+                        onChange: (E) => {
+                          g(
+                            Array.from(E.target.selectedOptions).map(
+                              (M) => M.value,
+                            ),
+                          );
+                        },
+                        size: 3,
+                        style: { ...Pe, width: 200, fontSize: 12, height: 70 },
+                        title: "Ctrl+clic para varios auditores",
+                        children: [
+                          c.jsx("option", { value: "", children: "— Todos —" }),
+                          e.auditores.map((E) =>
+                            c.jsx(
+                              "option",
+                              { value: E.id, children: E.nombre },
+                              E.id,
+                            ),
+                          ),
+                        ],
+                      }),
                   c.jsxs("select", {
                     value: x,
                     onChange: (E) => h(E.target.value),
@@ -59062,6 +59211,7 @@ function L6({ db: e, mes: t, filtAud: r, filtPais: n }) {
 }
 function B6({
   db: e,
+  session: b6s,
   pN: t,
   aN: r,
   prN: n,
@@ -59070,11 +59220,12 @@ function B6({
   hCode: s,
   hTitle: o,
 }) {
+  const b6IsAud = !!(b6s && b6s.rol === "auditor" && b6s.auditorId);
   const [l, u] = ke.useState(() => {
       const m = new Date();
       return m.getFullYear() + "-" + String(m.getMonth() + 1).padStart(2, "0");
     }),
-    [f, d] = ke.useState(""),
+    [f, d] = ke.useState(b6IsAud ? String(b6s.auditorId) : ""),
     [p, g] = ke.useState(""),
     [x, h] = ke.useState(null),
     _ = (m) => {
@@ -59226,24 +59377,38 @@ function B6({
                     },
                     children: "Filtrar por auditor",
                   }),
-                  c.jsxs("select", {
-                    value: f,
-                    onChange: (m) => d(m.target.value),
-                    style: Pe,
-                    children: [
-                      c.jsx("option", {
-                        value: "",
-                        children: "Todos los auditores",
+                  b6IsAud
+                    ? c.jsx("div", {
+                        style: {
+                          ...Pe,
+                          display: "flex",
+                          alignItems: "center",
+                          background: y.grayBg,
+                          color: y.text2,
+                        },
+                        children:
+                          (e.auditores.find(
+                            (m) => m.id === Number(b6s.auditorId),
+                          ) || {}).nombre || b6s.nombre,
+                      })
+                    : c.jsxs("select", {
+                        value: f,
+                        onChange: (m) => d(m.target.value),
+                        style: Pe,
+                        children: [
+                          c.jsx("option", {
+                            value: "",
+                            children: "Todos los auditores",
+                          }),
+                          e.auditores.map((m) =>
+                            c.jsx(
+                              "option",
+                              { value: m.id, children: m.nombre },
+                              m.id,
+                            ),
+                          ),
+                        ],
                       }),
-                      e.auditores.map((m) =>
-                        c.jsx(
-                          "option",
-                          { value: m.id, children: m.nombre },
-                          m.id,
-                        ),
-                      ),
-                    ],
-                  }),
                 ],
               }),
               c.jsxs("div", {
@@ -59298,8 +59463,8 @@ function B6({
         style: {
           display: "grid",
           gridTemplateColumns: "repeat(3,1fr)",
-          gap: 16,
-          marginBottom: 20,
+          gap: 10,
+          marginBottom: 14,
         },
         children: w.map((m) =>
           c.jsxs(
@@ -59316,51 +59481,51 @@ function B6({
                 c.jsxs("div", {
                   style: {
                     background: `linear-gradient(135deg,${m.color}15,${m.bg})`,
-                    padding: "1.25rem",
+                    padding: "0.75rem 0.85rem",
                     borderBottom: `1px solid ${m.color}20`,
                   },
                   children: [
                     c.jsx("div", {
                       style: {
-                        width: 48,
-                        height: 48,
-                        borderRadius: 12,
+                        width: 32,
+                        height: 32,
+                        borderRadius: 9,
                         background: m.bg,
                         border: `2px solid ${m.color}30`,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        fontSize: 24,
+                        fontSize: 16,
                         color: m.color,
-                        marginBottom: 10,
+                        marginBottom: 6,
                       },
                       children: c.jsx("i", { className: "ti " + m.ic }),
                     }),
                     c.jsx("div", {
                       style: {
-                        fontSize: 15,
+                        fontSize: 13,
                         fontWeight: 700,
                         color: y.text,
-                        marginBottom: 6,
+                        marginBottom: 3,
                       },
                       children: m.titulo,
                     }),
                     c.jsx("div", {
-                      style: { fontSize: 12, color: y.text2, lineHeight: 1.6 },
+                      style: { fontSize: 10.5, color: y.text2, lineHeight: 1.4 },
                       children: m.desc,
                     }),
                   ],
                 }),
                 c.jsxs("div", {
-                  style: { padding: "1rem" },
+                  style: { padding: "0.65rem 0.85rem" },
                   children: [
                     c.jsx("div", {
                       style: {
-                        fontSize: 10,
+                        fontSize: 9,
                         fontWeight: 700,
                         color: y.text3,
                         textTransform: "uppercase",
-                        marginBottom: 8,
+                        marginBottom: 5,
                       },
                       children: "Incluye:",
                     }),
@@ -59371,9 +59536,9 @@ function B6({
                           style: {
                             display: "flex",
                             alignItems: "flex-start",
-                            gap: 6,
-                            marginBottom: 5,
-                            fontSize: 11,
+                            gap: 5,
+                            marginBottom: 3,
+                            fontSize: 10,
                             color: y.text2,
                           },
                           children: [
@@ -59381,7 +59546,7 @@ function B6({
                               className: "ti ti-check",
                               style: {
                                 color: m.color,
-                                fontSize: 12,
+                                fontSize: 11,
                                 marginTop: 1,
                                 flexShrink: 0,
                               },
@@ -59397,19 +59562,19 @@ function B6({
                       disabled: x === m.id,
                       style: {
                         width: "100%",
-                        marginTop: 14,
-                        padding: "0.65rem",
+                        marginTop: 8,
+                        padding: "0.45rem",
                         background: x === m.id ? "#94a3b8" : m.color,
                         color: "#fff",
                         border: "none",
-                        borderRadius: 10,
-                        fontSize: 13,
+                        borderRadius: 8,
+                        fontSize: 11.5,
                         fontWeight: 700,
                         cursor: x === m.id ? "wait" : "pointer",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
-                        gap: 8,
+                        gap: 6,
                         fontFamily: "inherit",
                         transition: "opacity .15s",
                       },
