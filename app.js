@@ -49360,14 +49360,27 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                                   .filter((l) => l.estado === "Activo")
                                   .map((l) => {
                                     const u = (o.paisResponsables || {})[l.id];
-                                    return (
-                                      u &&
-                                      c.jsxs(
-                                        kl,
-                                        { color: y.gray, children: [Ze(l.nombre), " ", u] },
-                                        l.id,
-                                      )
-                                    );
+                                    if (!u) return null;
+                                    return u === "__NA__"
+                                      ? c.jsxs(
+                                          kl,
+                                          {
+                                            color: y.text3,
+                                            children: [
+                                              Ze(l.nombre),
+                                              " No aplica",
+                                            ],
+                                          },
+                                          l.id,
+                                        )
+                                      : c.jsxs(
+                                          kl,
+                                          {
+                                            color: y.gray,
+                                            children: [Ze(l.nombre), " ", u],
+                                          },
+                                          l.id,
+                                        );
                                   }),
                               }),
                             }),
@@ -49641,7 +49654,11 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         ];
       return nombres[parseInt(mesNum) - 1] + " " + anio;
     })(),
-    catalogoActivo = (e.cierre_actividades || []).filter((v) => v.activo !== false),
+    catalogoActivo = (e.cierre_actividades || []).filter(
+      (v) =>
+        v.activo !== false &&
+        (v.paisResponsables || {})[paisId] !== "__NA__",
+    ),
     faltantes = catalogoActivo.filter(
       (v) => !items.some((it) => it.actividadId === v.id),
     ),
@@ -54218,13 +54235,15 @@ function b6({
                 }),
                 r.paises
                   .filter((v) => v.estado === "Activo")
-                  .map((v) =>
-                    c.jsxs(
+                  .map((v) => {
+                    const naVal = "__NA__",
+                      esNA = (h.paisResponsables || {})[v.id] === naVal;
+                    return c.jsxs(
                       "div",
                       {
                         style: {
                           display: "grid",
-                          gridTemplateColumns: "140px 1fr",
+                          gridTemplateColumns: "140px 1fr auto",
                           gap: 8,
                           alignItems: "center",
                           marginBottom: 6,
@@ -54234,20 +54253,44 @@ function b6({
                             style: { fontSize: 12, fontWeight: 600 },
                             children: [Ze(v.nombre), " ", v.nombre],
                           }),
-                          c.jsx(Je, {
-                            value: (h.paisResponsables || {})[v.id] || "",
-                            onChange: (E) =>
+                          esNA
+                            ? c.jsx("div", {
+                                style: {
+                                  ...Pe,
+                                  color: y.text3,
+                                  fontStyle: "italic",
+                                  background: y.grayBg,
+                                },
+                                children: "No aplica para este país",
+                              })
+                            : c.jsx(Je, {
+                                value: (h.paisResponsables || {})[v.id] || "",
+                                onChange: (E) =>
+                                  k("paisResponsables", {
+                                    ...(h.paisResponsables || {}),
+                                    [v.id]: E,
+                                  }),
+                                placeholder: "Nombre del responsable",
+                              }),
+                          c.jsx(Te, {
+                            sm: !0,
+                            outline: !esNA,
+                            danger: esNA,
+                            title: esNA
+                              ? "Marcar como aplicable de nuevo"
+                              : "Marcar como no aplicable en este país",
+                            onClick: () =>
                               k("paisResponsables", {
                                 ...(h.paisResponsables || {}),
-                                [v.id]: E,
+                                [v.id]: esNA ? "" : naVal,
                               }),
-                            placeholder: "Nombre del responsable",
+                            children: esNA ? "No aplica ✕" : "No aplica",
                           }),
                         ],
                       },
                       v.id,
-                    ),
-                  ),
+                    );
+                  }),
               ],
             }),
           ],
