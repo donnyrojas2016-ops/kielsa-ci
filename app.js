@@ -53477,6 +53477,11 @@ function b6({
     x = t ? r[p[e]].find((v) => v.id === t) || {} : {},
     [h, _] = ke.useState({ ...x }),
     k = (v, b) => _((S) => ({ ...S, [v]: b })),
+    [procBusq, setProcBusq] = ke.useState(() => {
+      if (e !== "hallazgo" || !x.procesoId) return "";
+      const pr = r.procesos.find((v) => v.id === x.procesoId);
+      return pr ? pr.nombre : "";
+    }),
     w = e === "proceso" || e === "hallazgo" || e === "cierre_actividad",
     m = () => {
       if (e === "usuario" && (!h.usuario || !h.nombre)) {
@@ -54566,32 +54571,40 @@ function b6({
                 c.jsx(me, {
                   label: "Proceso",
                   half: !0,
-                  children: c.jsxs(Xe, {
-                    value: h.procesoId || "",
-                    onChange: (v) => {
-                      var S;
-                      k("procesoId", v ? parseInt(v) : null);
-                      const b = r.procesos.find((E) => E.id === parseInt(v));
-                      b &&
-                        h.paisId &&
-                        (S = b.paisAuditores) != null &&
-                        S[h.paisId] &&
-                        k("auditorId", b.paisAuditores[h.paisId]);
-                    },
+                  children: c.jsxs(c.Fragment, {
                     children: [
-                      c.jsx("option", {
-                        value: "",
-                        children: "— Seleccionar —",
+                      c.jsx("input", {
+                        list: "procesosDatalist",
+                        value: procBusq,
+                        onChange: (v) => {
+                          const texto = v.target.value;
+                          setProcBusq(texto);
+                          const match = r.procesos.find(
+                            (pr) =>
+                              pr.nombre.trim().toLowerCase() ===
+                              texto.trim().toLowerCase(),
+                          );
+                          if (match) {
+                            var S;
+                            k("procesoId", match.id);
+                            h.paisId &&
+                              (S = match.paisAuditores) != null &&
+                              S[h.paisId] &&
+                              k("auditorId", match.paisAuditores[h.paisId]);
+                          } else if (!texto) k("procesoId", null);
+                        },
+                        placeholder: "Escribe para buscar o selecciona de la lista",
+                        style: Pe,
+                        autoComplete: "off",
                       }),
-                      r.procesos
-                        .filter((v) => v.activo !== false)
-                        .map((v) =>
-                          c.jsx(
-                            "option",
-                            { value: v.id, children: v.nombre },
-                            v.id,
+                      c.jsx("datalist", {
+                        id: "procesosDatalist",
+                        children: r.procesos
+                          .filter((v) => v.activo !== false)
+                          .map((v) =>
+                            c.jsx("option", { value: v.nombre }, v.id),
                           ),
-                        ),
+                      }),
                     ],
                   }),
                 }),
