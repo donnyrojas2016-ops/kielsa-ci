@@ -49329,80 +49329,124 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
         wb = window.XLSX.read(buf, { type: "array" }),
         ws = wb.Sheets[wb.SheetNames[0]],
         filas = window.XLSX.utils.sheet_to_json(ws, { defval: "" });
-      const paisPorNombre = {};
+      const norm = (s) =>
+          String(s ?? "")
+            .trim()
+            .toLowerCase()
+            .normalize("NFD")
+            .replace(/[̀-ͯ]/g, ""),
+        paisPorNombre = {};
       ccPaisesActivos.forEach((p) => {
-        paisPorNombre[p.nombre.trim().toLowerCase()] = p;
+        paisPorNombre[norm(p.nombre)] = p;
       });
-      const vistos = new Set(
-        (e.cierre_actividades || []).map(
-          (ea) =>
-            (ea.categoria || "").trim().toLowerCase() +
-            "|" +
-            (ea.actividad || "").trim().toLowerCase(),
+      const headers = filas.length ? Object.keys(filas[0]) : [],
+        colPais = headers.find((c) =>
+          ["pais", "país", "country"].includes(norm(c)),
         ),
-      );
-      let creadas = 0,
-        actualizadas = 0,
-        conError = 0;
-      for (const fila of filas) {
+        colResponsable = headers.find((c) => norm(c) === "responsable");
+      const grupos = new Map();
+      filas.forEach((fila) => {
         const categoria = String(
             fila["Categoría"] ?? fila["Categoria"] ?? "",
           ).trim(),
           actividad = String(fila["Actividad"] ?? "").trim();
-        if (!categoria || !actividad) continue;
-        const key = categoria.toLowerCase() + "|" + actividad.toLowerCase(),
-          esNueva = !vistos.has(key);
-        vistos.add(key);
-        const frecuencia =
-            String(fila["Frecuencia"] ?? "").trim() || "Mensual",
-          ordenRaw = fila["Orden"],
-          orden =
-            ordenRaw === "" || ordenRaw == null
-              ? 0
-              : parseInt(ordenRaw) || 0,
-          paisResponsables = {};
-        Object.keys(fila).forEach((col) => {
-          const p = paisPorNombre[col.trim().toLowerCase()];
-          if (!p) return;
-          const val = String(fila[col] ?? "").trim();
-          if (!val) return;
-          paisResponsables[p.id] =
+        if (!categoria || !actividad) return;
+        const key = categoria.toLowerCase() + "|" + actividad.toLowerCase();
+        let g = grupos.get(key);
+        if (!g) {
+          const frecuencia =
+              String(fila["Frecuencia"] ?? "").trim() || "Mensual",
+            ordenRaw = fila["Orden"],
+            orden =
+              ordenRaw === "" || ordenRaw == null
+                ? 0
+                : parseInt(ordenRaw) || 0,
+            estadoRaw = String(fila["Estado"] ?? "").trim().toLowerCase(),
+            activo = estadoRaw ? estadoRaw !== "inactivo" : !0;
+          g = {
+            categoria,
+            actividad,
+            frecuencia,
+            orden,
+            activo,
+            paisResponsables: {},
+          };
+          grupos.set(key, g);
+        }
+        const setResp = (p, val) => {
+          if (!p || !val) return;
+          g.paisResponsables[p.id] =
             val.toLowerCase() === "no aplica" || val.toLowerCase() === "n/a"
               ? "__NA__"
               : val;
+        };
+        Object.keys(fila).forEach((col) => {
+          if (col === colPais || col === colResponsable) return;
+          const colTrim = col.trim();
+          let p = paisPorNombre[norm(colTrim)];
+          if (!p) {
+            const sinPrefijo = colTrim
+              .replace(/^(responsables?|resp\.?)\s*[:\-]?\s*/i, "")
+              .trim();
+            if (sinPrefijo && norm(sinPrefijo) !== norm(colTrim))
+              p = paisPorNombre[norm(sinPrefijo)];
+          }
+          if (!p) return;
+          setResp(p, String(fila[col] ?? "").trim());
         });
+        if (colPais) {
+          const p = paisPorNombre[norm(fila[colPais])],
+            val = String(
+              (colResponsable ? fila[colResponsable] : "") ?? "",
+            ).trim();
+          setResp(p, val);
+        }
+      });
+      let creadas = 0,
+        actualizadas = 0,
+        conError = 0;
+      for (const g of grupos.values()) {
         try {
           const existente = (e.cierre_actividades || []).find(
             (ea) =>
               (ea.categoria || "").trim().toLowerCase() ===
-                categoria.toLowerCase() &&
+                g.categoria.toLowerCase() &&
               (ea.actividad || "").trim().toLowerCase() ===
-                actividad.toLowerCase(),
+                g.actividad.toLowerCase(),
           );
           if (existente) {
             await a2("cierre_actividad", existente.id, {
               ...existente,
-              categoria,
-              actividad,
-              frecuencia,
-              orden,
-              paisResponsables,
+              categoria: g.categoria,
+              actividad: g.actividad,
+              frecuencia: g.frecuencia,
+              orden: g.orden,
+              paisResponsables: {
+                ...(existente.paisResponsables || {}),
+                ...g.paisResponsables,
+              },
+              activo: g.activo,
             });
             actualizadas++;
-          } else if (esNueva) {
+          } else {
             await a2("cierre_actividad", null, {
-              categoria,
-              actividad,
-              frecuencia,
-              orden,
-              paisResponsables,
-              activo: !0,
+              categoria: g.categoria,
+              actividad: g.actividad,
+              frecuencia: g.frecuencia,
+              orden: g.orden,
+              paisResponsables: g.paisResponsables,
+              activo: g.activo,
             });
             creadas++;
           }
         } catch (err) {
           conError++;
-          console.error("Error importando fila de cierre:", categoria, actividad, err);
+          console.error(
+            "Error importando fila de cierre:",
+            g.categoria,
+            g.actividad,
+            err,
+          );
         }
       }
       s2 &&
