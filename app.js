@@ -49265,6 +49265,9 @@ function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
 function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2, showToast: s2 }) {
   const [ccFiltroPais, ccSetFiltroPais] = ke.useState(""),
     [ccImportando, ccSetImportando] = ke.useState(!1),
+    [ccVista, ccSetVista] = ke.useState("lista"),
+    [ccMatrizCambios, ccSetMatrizCambios] = ke.useState({}),
+    [ccGuardandoMatriz, ccSetGuardandoMatriz] = ke.useState(!1),
     ccFileRef = ke.useRef(null),
     aSinFiltro = [...(e.cierre_actividades || [])].sort(
       (o, l) =>
@@ -49415,6 +49418,53 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
     }
     ccSetImportando(!1);
   };
+  const ccValorCelda = (actividad, paisId) =>
+    (ccMatrizCambios[actividad.id] ?? actividad.paisResponsables ?? {})[
+      paisId
+    ] || "";
+  const ccCambiarCelda = (actividad, paisId, valor) => {
+    ccSetMatrizCambios((prev) => ({
+      ...prev,
+      [actividad.id]: {
+        ...(prev[actividad.id] ?? actividad.paisResponsables ?? {}),
+        [paisId]: valor,
+      },
+    }));
+  };
+  const ccGuardarMatriz = async () => {
+    const ids = Object.keys(ccMatrizCambios);
+    if (!ids.length) return;
+    ccSetGuardandoMatriz(!0);
+    let ok = 0,
+      conError = 0;
+    for (const idStr of ids) {
+      const id = parseInt(idStr),
+        actividad = (e.cierre_actividades || []).find((v) => v.id === id);
+      if (!actividad) continue;
+      try {
+        await a2("cierre_actividad", id, {
+          ...actividad,
+          paisResponsables: ccMatrizCambios[idStr],
+        });
+        ok++;
+      } catch (err) {
+        conError++;
+        console.error("Error guardando fila de matriz de cierre:", id, err);
+      }
+    }
+    ccSetGuardandoMatriz(!1);
+    ccSetMatrizCambios({});
+    s2 &&
+      s2(
+        "Guardado: " +
+          ok +
+          " actividad(es)" +
+          (conError ? ", " + conError + " con error" : ""),
+        conError > 0 && ok === 0,
+      );
+  };
+  const ccDescartarMatriz = () => ccSetMatrizCambios({});
+  const ccCambiosPendientes = Object.keys(ccMatrizCambios).length;
   return c.jsxs(wt, {
     children: [
       c.jsx(Bt, {
@@ -49486,9 +49536,203 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
         children:
           "Este catálogo es compartido por los 5 países. Cada actividad define quién es el responsable en cada país; desde 'Cierre Mensual' se genera el checklist del mes para el país seleccionado a partir de esta lista.",
       }),
-      c.jsx("div", {
-        style: { overflowX: "auto" },
-        children: c.jsxs("table", {
+      i &&
+        c.jsxs("div", {
+          style: {
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            padding: "0 14px 10px",
+            flexWrap: "wrap",
+          },
+          children: [
+            c.jsxs(Te, {
+              sm: !0,
+              primary: ccVista === "lista",
+              outline: ccVista !== "lista",
+              onClick: () => ccSetVista("lista"),
+              children: [c.jsx("i", { className: "ti ti-list" }), " Vista lista"],
+            }),
+            c.jsxs(Te, {
+              sm: !0,
+              primary: ccVista === "matriz",
+              outline: ccVista !== "matriz",
+              onClick: () => ccSetVista("matriz"),
+              children: [
+                c.jsx("i", { className: "ti ti-table" }),
+                " Vista matriz (editar países)",
+              ],
+            }),
+            ccVista === "matriz" &&
+              c.jsxs(c.Fragment, {
+                children: [
+                  c.jsx("div", { style: { flex: 1 } }),
+                  ccCambiosPendientes > 0 &&
+                    c.jsxs("span", {
+                      style: {
+                        fontSize: 11.5,
+                        color: y.warning,
+                        fontWeight: 600,
+                      },
+                      children: [
+                        ccCambiosPendientes,
+                        " actividad(es) con cambios sin guardar",
+                      ],
+                    }),
+                  c.jsx(Te, {
+                    sm: !0,
+                    outline: !0,
+                    disabled: !ccCambiosPendientes || ccGuardandoMatriz,
+                    onClick: ccDescartarMatriz,
+                    children: "Descartar",
+                  }),
+                  c.jsxs(Te, {
+                    sm: !0,
+                    primary: !0,
+                    disabled: !ccCambiosPendientes || ccGuardandoMatriz,
+                    onClick: ccGuardarMatriz,
+                    children: [
+                      c.jsx("i", {
+                        className: ccGuardandoMatriz
+                          ? "ti ti-loader"
+                          : "ti ti-device-floppy",
+                        style: ccGuardandoMatriz
+                          ? { animation: "sp 1s linear infinite" }
+                          : undefined,
+                      }),
+                      ccGuardandoMatriz
+                        ? " Guardando..."
+                        : " Guardar cambios" +
+                          (ccCambiosPendientes
+                            ? " (" + ccCambiosPendientes + ")"
+                            : ""),
+                    ],
+                  }),
+                ],
+              }),
+          ],
+        }),
+      ccVista === "matriz" &&
+        c.jsx("div", {
+          style: { overflowX: "auto", padding: "0 14px 14px" },
+          children: c.jsxs("table", {
+            style: { width: "100%", borderCollapse: "collapse" },
+            children: [
+              c.jsx("thead", {
+                children: c.jsxs("tr", {
+                  children: [
+                    c.jsx(ie, { children: "Categoría" }),
+                    c.jsx(ie, { children: "Actividad" }),
+                    ccPaisesActivos.map((p) =>
+                      c.jsxs(
+                        ie,
+                        {
+                          children: [Ze(p.nombre), " ", p.nombre],
+                        },
+                        p.id,
+                      ),
+                    ),
+                  ],
+                }),
+              }),
+              c.jsx("tbody", {
+                children: aSinFiltro.map((o) =>
+                  c.jsxs(
+                    "tr",
+                    {
+                      style: {
+                        borderBottom: "1px solid " + y.border,
+                        opacity: o.activo === false ? 0.5 : 1,
+                        background: ccMatrizCambios[o.id]
+                          ? "#fffbeb"
+                          : undefined,
+                      },
+                      children: [
+                        c.jsx(le, {
+                          children: c.jsx(kl, {
+                            color: y.primary,
+                            children: o.categoria || "—",
+                          }),
+                        }),
+                        c.jsx(le, {
+                          s: { fontWeight: 600, fontSize: 12, maxWidth: 220 },
+                          children: o.actividad || "—",
+                        }),
+                        ccPaisesActivos.map((p) => {
+                          const valor = ccValorCelda(o, p.id),
+                            esNA = valor === "__NA__";
+                          return c.jsx(
+                            le,
+                            {
+                              children: c.jsxs("div", {
+                                style: {
+                                  display: "flex",
+                                  gap: 4,
+                                  alignItems: "center",
+                                },
+                                children: [
+                                  esNA
+                                    ? c.jsx("div", {
+                                        style: {
+                                          flex: 1,
+                                          fontSize: 10.5,
+                                          color: y.text3,
+                                          fontStyle: "italic",
+                                          padding: "0.3rem 0.4rem",
+                                        },
+                                        children: "No aplica",
+                                      })
+                                    : c.jsx("input", {
+                                        value: valor,
+                                        onChange: (ev) =>
+                                          ccCambiarCelda(
+                                            o,
+                                            p.id,
+                                            ev.target.value,
+                                          ),
+                                        placeholder: "Responsable…",
+                                        style: {
+                                          ...Pe,
+                                          flex: 1,
+                                          width: 110,
+                                          fontSize: 10.5,
+                                          padding: "0.3rem 0.4rem",
+                                        },
+                                      }),
+                                  c.jsx(Te, {
+                                    sm: !0,
+                                    outline: !esNA,
+                                    danger: esNA,
+                                    title: esNA
+                                      ? "Marcar como aplicable"
+                                      : "Marcar como no aplicable",
+                                    onClick: () =>
+                                      ccCambiarCelda(
+                                        o,
+                                        p.id,
+                                        esNA ? "" : "__NA__",
+                                      ),
+                                    children: esNA ? "✕" : "NA",
+                                  }),
+                                ],
+                              }),
+                            },
+                            p.id,
+                          );
+                        }),
+                      ],
+                    },
+                    o.id,
+                  ),
+                ),
+              }),
+            ],
+          }),
+        }),
+      ccVista === "lista" &&
+        c.jsx("div", {
+          style: { overflowX: "auto" },
+          children: c.jsxs("table", {
           style: { width: "100%", borderCollapse: "collapse" },
           children: [
             c.jsx("thead", {
