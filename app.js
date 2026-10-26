@@ -49263,11 +49263,20 @@ function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
   });
 }
 function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2, showToast: s2 }) {
-  const a = [...(e.cierre_actividades || [])].sort(
-    (o, l) =>
-      (o.categoria || "").localeCompare(l.categoria || "") ||
-      (o.orden || 0) - (l.orden || 0),
-  );
+  const [ccFiltroPais, ccSetFiltroPais] = ke.useState(""),
+    [ccImportando, ccSetImportando] = ke.useState(!1),
+    ccFileRef = ke.useRef(null),
+    aSinFiltro = [...(e.cierre_actividades || [])].sort(
+      (o, l) =>
+        (o.categoria || "").localeCompare(l.categoria || "") ||
+        (o.orden || 0) - (l.orden || 0),
+    ),
+    a = ccFiltroPais
+      ? aSinFiltro.filter(
+          (o) =>
+            (o.paisResponsables || {})[ccFiltroPais] !== "__NA__",
+        )
+      : aSinFiltro;
   const toggleActivo = async (o) => {
     try {
       await a2("cierre_actividad", o.id, { ...o, activo: o.activo === false });
@@ -49276,18 +49285,201 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
       s2 && s2("Error: " + err.message, !0);
     }
   };
+  const ccPaisesActivos = (e.paises || []).filter((v) => v.estado === "Activo");
+  const ccDescargarExcel = () => {
+    try {
+      const filas = aSinFiltro.map((o) => {
+          const fila = {
+            Categoría: o.categoria || "",
+            Actividad: o.actividad || "",
+            Frecuencia: o.frecuencia || "Mensual",
+            Orden: o.orden ?? 0,
+          };
+          ccPaisesActivos.forEach((p) => {
+            const val = (o.paisResponsables || {})[p.id];
+            fila[p.nombre] = val === "__NA__" ? "No aplica" : val || "";
+          });
+          return fila;
+        }),
+        ws = bt.json_to_sheet(filas),
+        wb = bt.book_new();
+      bt.book_append_sheet(wb, ws, "Catálogo de Cierre");
+      Ll(wb, "KielsaCI_CatalogoCierre.xlsx");
+      s2 && s2("Excel descargado ✓");
+    } catch (err) {
+      s2 && s2("Error al exportar: " + err.message, !0);
+    }
+  };
+  const ccCargarExcel = async (ev) => {
+    const file = ev.target.files && ev.target.files[0];
+    if (ev.target) ev.target.value = "";
+    if (!file) return;
+    if (!window.XLSX) {
+      s2 && s2("Librería de Excel no cargada. Recarga la página.", !0);
+      return;
+    }
+    ccSetImportando(!0);
+    try {
+      const buf = await file.arrayBuffer(),
+        wb = window.XLSX.read(buf, { type: "array" }),
+        ws = wb.Sheets[wb.SheetNames[0]],
+        filas = window.XLSX.utils.sheet_to_json(ws, { defval: "" });
+      const paisPorNombre = {};
+      ccPaisesActivos.forEach((p) => {
+        paisPorNombre[p.nombre.trim().toLowerCase()] = p;
+      });
+      const vistos = new Set(
+        (e.cierre_actividades || []).map(
+          (ea) =>
+            (ea.categoria || "").trim().toLowerCase() +
+            "|" +
+            (ea.actividad || "").trim().toLowerCase(),
+        ),
+      );
+      let creadas = 0,
+        actualizadas = 0,
+        conError = 0;
+      for (const fila of filas) {
+        const categoria = String(
+            fila["Categoría"] ?? fila["Categoria"] ?? "",
+          ).trim(),
+          actividad = String(fila["Actividad"] ?? "").trim();
+        if (!categoria || !actividad) continue;
+        const key = categoria.toLowerCase() + "|" + actividad.toLowerCase(),
+          esNueva = !vistos.has(key);
+        vistos.add(key);
+        const frecuencia =
+            String(fila["Frecuencia"] ?? "").trim() || "Mensual",
+          ordenRaw = fila["Orden"],
+          orden =
+            ordenRaw === "" || ordenRaw == null
+              ? 0
+              : parseInt(ordenRaw) || 0,
+          paisResponsables = {};
+        Object.keys(fila).forEach((col) => {
+          const p = paisPorNombre[col.trim().toLowerCase()];
+          if (!p) return;
+          const val = String(fila[col] ?? "").trim();
+          if (!val) return;
+          paisResponsables[p.id] =
+            val.toLowerCase() === "no aplica" || val.toLowerCase() === "n/a"
+              ? "__NA__"
+              : val;
+        });
+        try {
+          const existente = (e.cierre_actividades || []).find(
+            (ea) =>
+              (ea.categoria || "").trim().toLowerCase() ===
+                categoria.toLowerCase() &&
+              (ea.actividad || "").trim().toLowerCase() ===
+                actividad.toLowerCase(),
+          );
+          if (existente) {
+            await a2("cierre_actividad", existente.id, {
+              ...existente,
+              categoria,
+              actividad,
+              frecuencia,
+              orden,
+              paisResponsables,
+            });
+            actualizadas++;
+          } else if (esNueva) {
+            await a2("cierre_actividad", null, {
+              categoria,
+              actividad,
+              frecuencia,
+              orden,
+              paisResponsables,
+              activo: !0,
+            });
+            creadas++;
+          }
+        } catch (err) {
+          conError++;
+          console.error("Error importando fila de cierre:", categoria, actividad, err);
+        }
+      }
+      s2 &&
+        s2(
+          "Importación: " +
+            creadas +
+            " nueva(s), " +
+            actualizadas +
+            " actualizada(s)" +
+            (conError ? ", " + conError + " con error" : ""),
+          conError > 0 && creadas + actualizadas === 0,
+        );
+    } catch (err) {
+      s2 && s2("Error al leer el Excel: " + err.message, !0);
+    }
+    ccSetImportando(!1);
+  };
   return c.jsxs(wt, {
     children: [
       c.jsx(Bt, {
-        left: a.length + " actividades de cierre mensual",
+        left: a.length + " de " + aSinFiltro.length + " actividades de cierre mensual",
         icon: "ti-list-details",
-        right:
-          i &&
-          c.jsxs(Te, {
-            primary: !0,
-            onClick: () => r(null),
-            children: [c.jsx("i", { className: "ti ti-plus" }), " Agregar actividad"],
-          }),
+        right: c.jsxs("div", {
+          style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
+          children: [
+            c.jsxs("select", {
+              value: ccFiltroPais,
+              onChange: (v) => ccSetFiltroPais(v.target.value ? parseInt(v.target.value) : ""),
+              style: { ...Pe, width: 170, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todos los países" }),
+                ccPaisesActivos.map((v) =>
+                  c.jsxs(
+                    "option",
+                    { value: v.id, children: [Ze(v.nombre), " ", v.nombre] },
+                    v.id,
+                  ),
+                ),
+              ],
+            }),
+            c.jsxs(Te, {
+              outline: !0,
+              onClick: ccDescargarExcel,
+              children: [
+                c.jsx("i", { className: "ti ti-file-spreadsheet" }),
+                " Descargar Excel",
+              ],
+            }),
+            i &&
+              c.jsxs(c.Fragment, {
+                children: [
+                  c.jsx("input", {
+                    ref: ccFileRef,
+                    type: "file",
+                    accept: ".xlsx,.xls,.csv",
+                    style: { display: "none" },
+                    onChange: ccCargarExcel,
+                  }),
+                  c.jsxs(Te, {
+                    outline: !0,
+                    disabled: ccImportando,
+                    onClick: () => ccFileRef.current && ccFileRef.current.click(),
+                    children: [
+                      c.jsx("i", {
+                        className: ccImportando ? "ti ti-loader" : "ti ti-upload",
+                        style: ccImportando
+                          ? { animation: "sp 1s linear infinite" }
+                          : undefined,
+                      }),
+                      ccImportando ? " Importando..." : " Cargar Excel",
+                    ],
+                  }),
+                ],
+              }),
+            i &&
+              c.jsxs(Te, {
+                primary: !0,
+                onClick: () => r(null),
+                children: [c.jsx("i", { className: "ti ti-plus" }), " Agregar actividad"],
+              }),
+          ],
+        }),
       }),
       c.jsx("div", {
         style: { padding: "8px 14px", fontSize: 11.5, color: y.text3 },
