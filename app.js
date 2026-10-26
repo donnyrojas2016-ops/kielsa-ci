@@ -47886,6 +47886,7 @@ function u6() {
                     }),
                   isAdmin: V,
                   onSave: ne,
+                  onDeleteDirecto: X,
                   showToast: v,
                 }),
               s === "procesos" &&
@@ -49262,12 +49263,13 @@ function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
     ],
   });
 }
-function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2, showToast: s2 }) {
+function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2, onDeleteDirecto: a3, showToast: s2 }) {
   const [ccFiltroPais, ccSetFiltroPais] = ke.useState(""),
     [ccImportando, ccSetImportando] = ke.useState(!1),
     [ccVista, ccSetVista] = ke.useState("lista"),
     [ccMatrizCambios, ccSetMatrizCambios] = ke.useState({}),
     [ccGuardandoMatriz, ccSetGuardandoMatriz] = ke.useState(!1),
+    [ccEliminandoTodo, ccSetEliminandoTodo] = ke.useState(!1),
     ccFileRef = ke.useRef(null),
     aSinFiltro = [...(e.cierre_actividades || [])].sort(
       (o, l) =>
@@ -49465,6 +49467,36 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
   };
   const ccDescartarMatriz = () => ccSetMatrizCambios({});
   const ccCambiosPendientes = Object.keys(ccMatrizCambios).length;
+  const ccEliminarTodo = async () => {
+    if (!aSinFiltro.length) return;
+    const confirmacion = window.prompt(
+      'Vas a ELIMINAR PERMANENTEMENTE las ' +
+        aSinFiltro.length +
+        ' actividades del catálogo de cierre (las 5 países quedarán sin checklist configurado). Esto no se puede deshacer.\n\nEscribe ELIMINAR para confirmar:',
+    );
+    if (confirmacion !== "ELIMINAR") return;
+    ccSetEliminandoTodo(!0);
+    let ok = 0,
+      conError = 0;
+    for (const o of aSinFiltro) {
+      try {
+        await a3("cierre_actividades", o.id);
+        ok++;
+      } catch (err) {
+        conError++;
+        console.error("Error eliminando actividad de catálogo:", o.id, err);
+      }
+    }
+    ccSetEliminandoTodo(!1);
+    s2 &&
+      s2(
+        "Eliminadas " +
+          ok +
+          " actividad(es) del catálogo" +
+          (conError ? ", " + conError + " con error" : ""),
+        conError > 0 && ok === 0,
+      );
+  };
   return c.jsxs(wt, {
     children: [
       c.jsx(Bt, {
@@ -49527,6 +49559,23 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                 primary: !0,
                 onClick: () => r(null),
                 children: [c.jsx("i", { className: "ti ti-plus" }), " Agregar actividad"],
+              }),
+            i &&
+              aSinFiltro.length > 0 &&
+              c.jsxs(Te, {
+                danger: !0,
+                disabled: ccEliminandoTodo,
+                onClick: ccEliminarTodo,
+                title: "Elimina TODAS las actividades del catálogo (de los 5 países)",
+                children: [
+                  c.jsx("i", {
+                    className: ccEliminandoTodo ? "ti ti-loader" : "ti ti-trash",
+                    style: ccEliminandoTodo
+                      ? { animation: "sp 1s linear infinite" }
+                      : undefined,
+                  }),
+                  ccEliminandoTodo ? " Eliminando..." : " Eliminar todo",
+                ],
               }),
           ],
         }),
