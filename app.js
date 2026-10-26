@@ -49299,6 +49299,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
             Actividad: o.actividad || "",
             Frecuencia: o.frecuencia || "Mensual",
             Orden: o.orden ?? 0,
+            "Fecha límite": o.diaLimite || "",
           };
           ccPaisesActivos.forEach((p) => {
             const val = (o.paisResponsables || {})[p.id];
@@ -49343,7 +49344,12 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
         colPais = headers.find((c) =>
           ["pais", "país", "country"].includes(norm(c)),
         ),
-        colResponsable = headers.find((c) => norm(c) === "responsable");
+        colResponsable = headers.find((c) => norm(c) === "responsable"),
+        colFechaLimite = headers.find((c) =>
+          ["fecha limite", "fecha límite", "fecha maxima", "fecha máxima"].includes(
+            norm(c),
+          ),
+        );
       const grupos = new Map();
       filas.forEach((fila) => {
         const categoria = String(
@@ -49362,13 +49368,17 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                 ? 0
                 : parseInt(ordenRaw) || 0,
             estadoRaw = String(fila["Estado"] ?? "").trim().toLowerCase(),
-            activo = estadoRaw ? estadoRaw !== "inactivo" : !0;
+            activo = estadoRaw ? estadoRaw !== "inactivo" : !0,
+            diaLimite = colFechaLimite
+              ? String(fila[colFechaLimite] ?? "").trim()
+              : "";
           g = {
             categoria,
             actividad,
             frecuencia,
             orden,
             activo,
+            diaLimite,
             paisResponsables: {},
           };
           grupos.set(key, g);
@@ -49381,7 +49391,8 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
               : val;
         };
         Object.keys(fila).forEach((col) => {
-          if (col === colPais || col === colResponsable) return;
+          if (col === colPais || col === colResponsable || col === colFechaLimite)
+            return;
           const colTrim = col.trim();
           let p = paisPorNombre[norm(colTrim)];
           if (!p) {
@@ -49425,6 +49436,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                 ...(existente.paisResponsables || {}),
                 ...g.paisResponsables,
               },
+              diaLimite: g.diaLimite || existente.diaLimite || "",
               activo: g.activo,
             });
             actualizadas++;
@@ -49435,6 +49447,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
               frecuencia: g.frecuencia,
               orden: g.orden,
               paisResponsables: g.paisResponsables,
+              diaLimite: g.diaLimite || "",
               activo: g.activo,
             });
             creadas++;
@@ -49835,6 +49848,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                   c.jsx(ie, { children: "Actividad" }),
                   c.jsx(ie, { children: "Frecuencia" }),
                   c.jsx(ie, { children: "Orden" }),
+                  c.jsx(ie, { children: "Fecha límite" }),
                   c.jsx(ie, { children: "Responsables por país" }),
                   c.jsx(ie, { children: "Estado" }),
                   i && c.jsx(ie, { children: "Acc." }),
@@ -49846,7 +49860,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                 a.length === 0
                   ? c.jsx("tr", {
                       children: c.jsx("td", {
-                        colSpan: 7,
+                        colSpan: 8,
                         style: {
                           padding: "2rem",
                           textAlign: "center",
@@ -49881,6 +49895,10 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                             c.jsx(le, {
                               s: { fontSize: 12, color: y.text2 },
                               children: o.orden ?? "—",
+                            }),
+                            c.jsx(le, {
+                              s: { fontSize: 12, color: y.text2 },
+                              children: o.diaLimite || "—",
                             }),
                             c.jsx(le, {
                               children: c.jsx("div", {
@@ -50192,6 +50210,25 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     faltantes = catalogoActivo.filter(
       (v) => !items.some((it) => it.actividadId === v.id),
     ),
+    calcularFechaLimite = (plantilla, mesBase) => {
+      if (!plantilla) return null;
+      const diaM = String(plantilla).match(/\d{1,2}/);
+      if (!diaM) return null;
+      let dia = parseInt(diaM[0], 10),
+        [anio, mesNum] = mesBase.split("-").map(Number);
+      if (/siguiente/i.test(plantilla)) {
+        mesNum += 1;
+        if (mesNum > 12) {
+          mesNum = 1;
+          anio += 1;
+        }
+      }
+      const ultimoDia = new Date(anio, mesNum, 0).getDate();
+      dia = Math.min(Math.max(dia, 1), ultimoDia);
+      return (
+        anio + "-" + String(mesNum).padStart(2, "0") + "-" + String(dia).padStart(2, "0")
+      );
+    },
     generar = async () => {
       if (!catalogoActivo.length) {
         s("No hay actividades configuradas en el catálogo de cierre", !0);
@@ -50213,7 +50250,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
             orden: v.orden || 0,
             estado: "Pendiente",
             fechaRealizado: null,
-            fechaLimite: null,
+            fechaLimite: calcularFechaLimite(v.diaLimite, mes),
             observaciones: "",
           });
         }
@@ -54795,6 +54832,14 @@ function b6({
                   }),
                 }),
               ],
+            }),
+            c.jsx(me, {
+              label: "Fecha límite",
+              children: c.jsx(Je, {
+                value: h.diaLimite || "",
+                onChange: (v) => k("diaLimite", v),
+                placeholder: 'Ej: "3 de cada mes" o "1 del siguiente mes"',
+              }),
             }),
             c.jsxs("div", {
               style: {
