@@ -50051,6 +50051,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
       return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
     }),
     [generando, setGenerando] = ke.useState(!1),
+    [eliminandoTodo, setEliminandoTodo] = ke.useState(!1),
     items = (e.cierre_ejecucion || [])
       .filter((v) => v.paisId === paisId && v.mes === mes)
       .sort(
@@ -50151,6 +50152,41 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         pendientes,
         avance,
       });
+    },
+    eliminarTodo = async () => {
+      if (!items.length) return;
+      if (
+        !window.confirm(
+          "¿Eliminar las " +
+            items.length +
+            " actividad(es) generadas para " +
+            t(paisId) +
+            " en " +
+            mesLabel +
+            "? Esto borra todo el progreso registrado (estados, fechas, observaciones) de ese mes y país. No se puede deshacer.",
+        )
+      )
+        return;
+      setEliminandoTodo(!0);
+      let ok = 0,
+        conError = 0;
+      for (const it of items) {
+        try {
+          await a("cierre_ejecucion", it.id);
+          ok++;
+        } catch (err) {
+          conError++;
+          console.error("Error eliminando actividad de cierre:", it.id, err);
+        }
+      }
+      setEliminandoTodo(!1);
+      s(
+        "Eliminadas " +
+          ok +
+          " actividad(es)" +
+          (conError ? ", " + conError + " con error" : ""),
+        conError > 0 && ok === 0,
+      );
     };
   if (!n && paisesPermitidos.length === 0)
     return c.jsxs("div", {
@@ -50230,6 +50266,23 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
               outline: !0,
               onClick: descargarPDF,
               children: [c.jsx("i", { className: "ti ti-file-download" }), " Descargar PDF"],
+            }),
+          n &&
+            items.length > 0 &&
+            c.jsxs(Te, {
+              danger: !0,
+              disabled: eliminandoTodo,
+              onClick: eliminarTodo,
+              title: "Elimina todas las actividades generadas para este país y mes",
+              children: [
+                c.jsx("i", {
+                  className: eliminandoTodo ? "ti ti-loader" : "ti ti-trash",
+                  style: eliminandoTodo
+                    ? { animation: "sp 1s linear infinite" }
+                    : undefined,
+                }),
+                eliminandoTodo ? " Eliminando..." : " Eliminar todo",
+              ],
             }),
         ],
       }),
