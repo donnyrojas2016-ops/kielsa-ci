@@ -50163,6 +50163,11 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     }),
     [generando, setGenerando] = ke.useState(!1),
     [eliminandoTodo, setEliminandoTodo] = ke.useState(!1),
+    [fCategoria, setFCategoria] = ke.useState(""),
+    [fResponsable, setFResponsable] = ke.useState(""),
+    [fFechaDesde, setFFechaDesde] = ke.useState(""),
+    [fFechaHasta, setFFechaHasta] = ke.useState(""),
+    [fSemaforo, setFSemaforo] = ke.useState(""),
     items = (e.cierre_ejecucion || [])
       .filter((v) => v.paisId === paisId && v.mes === mes)
       .sort(
@@ -50180,6 +50185,34 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         return { estado: "azul", label: "En Proceso" };
       return { estado: "amarillo", label: "Pendiente" };
     },
+    categoriasDisponibles = [
+      ...new Set(items.map((v) => v.categoria).filter(Boolean)),
+    ].sort(),
+    responsablesDisponibles = [
+      ...new Set(items.map((v) => v.responsable).filter(Boolean)),
+    ].sort(),
+    hayFiltrosActivos = !!(
+      fCategoria ||
+      fResponsable ||
+      fFechaDesde ||
+      fFechaHasta ||
+      fSemaforo
+    ),
+    limpiarFiltros = () => {
+      (setFCategoria(""),
+        setFResponsable(""),
+        setFFechaDesde(""),
+        setFFechaHasta(""),
+        setFSemaforo(""));
+    },
+    itemsFiltrados = items.filter(
+      (v) =>
+        (!fCategoria || v.categoria === fCategoria) &&
+        (!fResponsable || v.responsable === fResponsable) &&
+        (!fFechaDesde || (v.fechaLimite && v.fechaLimite >= fFechaDesde)) &&
+        (!fFechaHasta || (v.fechaLimite && v.fechaLimite <= fFechaHasta)) &&
+        (!fSemaforo || semaforo(v).label === fSemaforo),
+    ),
     total = items.length,
     completadas = items.filter((v) => v.estado === "Completado").length,
     pendientes = total - completadas,
@@ -50508,6 +50541,92 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
           ),
         ),
       }),
+      items.length > 0 &&
+        c.jsxs("div", {
+          style: {
+            display: "flex",
+            gap: 10,
+            marginBottom: 12,
+            flexWrap: "wrap",
+            alignItems: "center",
+          },
+          children: [
+            c.jsxs("select", {
+              value: fCategoria,
+              onChange: (v) => setFCategoria(v.target.value),
+              style: { ...Pe, width: 170, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todas las categorías" }),
+                categoriasDisponibles.map((v) =>
+                  c.jsx("option", { value: v, children: v }, v),
+                ),
+              ],
+            }),
+            c.jsxs("select", {
+              value: fResponsable,
+              onChange: (v) => setFResponsable(v.target.value),
+              style: { ...Pe, width: 170, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todos los responsables" }),
+                responsablesDisponibles.map((v) =>
+                  c.jsx("option", { value: v, children: v }, v),
+                ),
+              ],
+            }),
+            c.jsxs("select", {
+              value: fSemaforo,
+              onChange: (v) => setFSemaforo(v.target.value),
+              style: { ...Pe, width: 160, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todos los semáforos" }),
+                c.jsx("option", { value: "Pendiente", children: "Pendiente" }),
+                c.jsx("option", { value: "En Proceso", children: "En Proceso" }),
+                c.jsx("option", { value: "Vencido", children: "Vencido" }),
+                c.jsx("option", { value: "Completado", children: "Completado" }),
+              ],
+            }),
+            c.jsxs("div", {
+              style: { display: "flex", alignItems: "center", gap: 5 },
+              children: [
+                c.jsx("span", {
+                  style: { fontSize: 11.5, color: y.text3 },
+                  children: "Fecha límite:",
+                }),
+                c.jsx("input", {
+                  type: "date",
+                  value: fFechaDesde,
+                  onChange: (v) => setFFechaDesde(v.target.value),
+                  style: { ...Pe, width: 140, fontSize: 12 },
+                  title: "Desde",
+                }),
+                c.jsx("span", { style: { fontSize: 11.5, color: y.text3 }, children: "a" }),
+                c.jsx("input", {
+                  type: "date",
+                  value: fFechaHasta,
+                  onChange: (v) => setFFechaHasta(v.target.value),
+                  style: { ...Pe, width: 140, fontSize: 12 },
+                  title: "Hasta",
+                }),
+              ],
+            }),
+            hayFiltrosActivos &&
+              c.jsxs(Te, {
+                sm: !0,
+                outline: !0,
+                onClick: limpiarFiltros,
+                children: [c.jsx("i", { className: "ti ti-x" }), " Limpiar filtros"],
+              }),
+            c.jsxs("span", {
+              style: { fontSize: 11.5, color: y.text3, marginLeft: "auto" },
+              children: [
+                itemsFiltrados.length,
+                " de ",
+                items.length,
+                " actividad(es)",
+              ],
+            }),
+          ],
+        }),
       c.jsx(wt, {
         children:
           items.length === 0
@@ -50520,6 +50639,11 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
                     t(paisId) +
                     ". Usa el botón 'Generar checklist del mes'."
                   : "No hay actividades configuradas en el catálogo de cierre. Ve a Configuración → Catálogo de Cierre para agregarlas.",
+              })
+            : itemsFiltrados.length === 0
+            ? c.jsx("div", {
+                style: { padding: "2.5rem", textAlign: "center", color: y.text3 },
+                children: "Ninguna actividad coincide con los filtros seleccionados.",
               })
             : c.jsx("div", {
                 style: { overflowX: "auto" },
@@ -50542,7 +50666,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
                       }),
                     }),
                     c.jsx("tbody", {
-                      children: items.map((v) => {
+                      children: itemsFiltrados.map((v) => {
                         const sf = semaforo(v),
                           color =
                             sf.estado === "verde"
