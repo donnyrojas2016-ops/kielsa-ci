@@ -49378,9 +49378,12 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
     ccSetImportando(!0);
     try {
       const buf = await file.arrayBuffer(),
-        wb = window.XLSX.read(buf, { type: "array" }),
+        wb = window.XLSX.read(buf, { type: "array", cellDates: !0 }),
         ws = wb.Sheets[wb.SheetNames[0]],
-        filas = window.XLSX.utils.sheet_to_json(ws, { defval: "" });
+        filas = window.XLSX.utils.sheet_to_json(ws, {
+          defval: "",
+          cellDates: !0,
+        });
       const norm = (s) =>
           String(s ?? "")
             .trim()
@@ -49391,6 +49394,76 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
       ccPaisesActivos.forEach((p) => {
         paisPorNombre[norm(p.nombre)] = p;
       });
+      const MESES_ES = [
+          "enero",
+          "febrero",
+          "marzo",
+          "abril",
+          "mayo",
+          "junio",
+          "julio",
+          "agosto",
+          "septiembre",
+          "octubre",
+          "noviembre",
+          "diciembre",
+        ],
+        mesCierreAMes = (val) => {
+          if (val == null || val === "") return null;
+          if (val instanceof Date) return val.getMonth();
+          if (typeof val === "number") {
+            const d2 = new Date(Math.round((val - 25569) * 86400 * 1000));
+            return d2.getUTCMonth();
+          }
+          const sVal = String(val),
+            m1 = sVal.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (m1) return parseInt(m1[2], 10) - 1;
+          const m2 = sVal.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})/);
+          if (m2) return parseInt(m2[2], 10) - 1;
+          const ln = norm(sVal);
+          for (let i2 = 0; i2 < 12; i2++)
+            if (ln.includes(MESES_ES[i2])) return i2;
+          return null;
+        },
+        clasificarFechaLimiteExcel = (textoRaw, mesCierreVal) => {
+          if (!textoRaw) return null;
+          const texto = String(textoRaw),
+            n = norm(texto);
+          if (n.includes("trimestre")) return { especial: !0, texto };
+          if (n.includes("diciembre") && n.includes("junio"))
+            return { especial: !0, texto };
+          const base = texto.includes("(")
+              ? texto.split("(")[0]
+              : texto.split(/osea/i)[0],
+            nbase = norm(base),
+            esUltimo = /ultimo\s*d|final del/.test(nbase);
+          let offset = null;
+          if (/siguiente|proximo/.test(nbase)) offset = 1;
+          else {
+            const mesIdx = mesCierreAMes(mesCierreVal);
+            if (mesIdx != null) {
+              const refMes = MESES_ES[mesIdx],
+                sigMes = MESES_ES[(mesIdx + 1) % 12];
+              if (n.includes(sigMes)) offset = 1;
+              else if (n.includes(refMes)) offset = 0;
+            }
+          }
+          if (offset == null && !esUltimo) return { especial: !0, texto };
+          if (esUltimo) return { ultimo: !0, offset: offset == null ? 0 : offset };
+          const nums = (base.match(/\d{1,2}/g) || []).map(Number);
+          if (!nums.length) return { especial: !0, texto };
+          return { dia: Math.max(...nums), offset };
+        },
+        normalizarDiaLimite = (textoRaw, mesCierreVal) => {
+          const r = clasificarFechaLimiteExcel(textoRaw, mesCierreVal);
+          if (!r) return "";
+          if (r.especial) return r.texto;
+          if (r.ultimo)
+            return r.offset === 1
+              ? "Último día del mes siguiente"
+              : "Último día del mes";
+          return r.offset === 1 ? r.dia + " del mes siguiente" : r.dia + " de cada mes";
+        };
       const headers = filas.length ? Object.keys(filas[0]) : [],
         colPais = headers.find((c) =>
           ["pais", "país", "country"].includes(norm(c)),
@@ -49400,6 +49473,9 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
           ["fecha limite", "fecha límite", "fecha maxima", "fecha máxima"].includes(
             norm(c),
           ),
+        ),
+        colMesCierre = headers.find((c) =>
+          ["mes de cierre", "mes cierre"].includes(norm(c)),
         );
       const grupos = new Map();
       filas.forEach((fila) => {
@@ -49421,7 +49497,10 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
             estadoRaw = String(fila["Estado"] ?? "").trim().toLowerCase(),
             activo = estadoRaw ? estadoRaw !== "inactivo" : !0,
             diaLimite = colFechaLimite
-              ? String(fila[colFechaLimite] ?? "").trim()
+              ? normalizarDiaLimite(
+                  fila[colFechaLimite],
+                  colMesCierre ? fila[colMesCierre] : null,
+                )
               : "";
           g = {
             categoria,
@@ -49442,7 +49521,12 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
               : val;
         };
         Object.keys(fila).forEach((col) => {
-          if (col === colPais || col === colResponsable || col === colFechaLimite)
+          if (
+            col === colPais ||
+            col === colResponsable ||
+            col === colFechaLimite ||
+            col === colMesCierre
+          )
             return;
           const colTrim = col.trim();
           let p = paisPorNombre[norm(colTrim)];
@@ -50382,19 +50466,34 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     ),
     calcularFechaLimite = (plantilla, mesBase) => {
       if (!plantilla) return null;
-      const diaM = String(plantilla).match(/\d{1,2}/);
-      if (!diaM) return null;
-      let dia = parseInt(diaM[0], 10),
-        [anio, mesNum] = mesBase.split("-").map(Number);
-      if (/siguiente/i.test(plantilla)) {
+      const txt = String(plantilla),
+        n2 = txt
+          .trim()
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[̀-ͯ]/g, "");
+      if (
+        n2.includes("trimestre") ||
+        (n2.includes("diciembre") && n2.includes("junio"))
+      )
+        return null;
+      let [anio, mesNum] = mesBase.split("-").map(Number);
+      if (/siguiente|proximo/.test(n2)) {
         mesNum += 1;
         if (mesNum > 12) {
           mesNum = 1;
           anio += 1;
         }
       }
-      const ultimoDia = new Date(anio, mesNum, 0).getDate();
-      dia = Math.min(Math.max(dia, 1), ultimoDia);
+      const ultimoDiaMes = new Date(anio, mesNum, 0).getDate();
+      let dia;
+      if (/ultimo\s*d|final del/.test(n2)) {
+        dia = ultimoDiaMes;
+      } else {
+        const diaM = txt.match(/\d{1,2}/);
+        if (!diaM) return null;
+        dia = Math.min(Math.max(parseInt(diaM[0], 10), 1), ultimoDiaMes);
+      }
       return (
         anio + "-" + String(mesNum).padStart(2, "0") + "-" + String(dia).padStart(2, "0")
       );
