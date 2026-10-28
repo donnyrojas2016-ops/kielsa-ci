@@ -49270,6 +49270,10 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
     [ccMatrizCambios, ccSetMatrizCambios] = ke.useState({}),
     [ccGuardandoMatriz, ccSetGuardandoMatriz] = ke.useState(!1),
     [ccEliminandoTodo, ccSetEliminandoTodo] = ke.useState(!1),
+    [ccFiltroCategoria, ccSetFiltroCategoria] = ke.useState(""),
+    [ccFiltroResponsable, ccSetFiltroResponsable] = ke.useState(""),
+    [ccFiltroFechaLimite, ccSetFiltroFechaLimite] = ke.useState(""),
+    [ccFiltroEstado, ccSetFiltroEstado] = ke.useState(""),
     ccFileRef = ke.useRef(null),
     aSinFiltro = [...(e.cierre_actividades || [])].sort(
       (o, l) =>
@@ -49281,7 +49285,54 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
           (o) =>
             (o.paisResponsables || {})[ccFiltroPais] !== "__NA__",
         )
-      : aSinFiltro;
+      : aSinFiltro,
+    ccCategoriasDisponibles = [
+      ...new Set(a.map((o) => o.categoria).filter(Boolean)),
+    ].sort(),
+    ccResponsablesDisponibles = [
+      ...new Set(
+        a.flatMap((o) =>
+          Object.entries(o.paisResponsables || {})
+            .filter(
+              ([pid, val]) =>
+                (!ccFiltroPais || Number(pid) === Number(ccFiltroPais)) &&
+                val &&
+                val !== "__NA__",
+            )
+            .map(([, val]) => val),
+        ),
+      ),
+    ].sort(),
+    ccFechasLimiteDisponibles = [
+      ...new Set(a.map((o) => o.diaLimite).filter(Boolean)),
+    ].sort(),
+    ccHayFiltrosExtra = !!(
+      ccFiltroCategoria ||
+      ccFiltroResponsable ||
+      ccFiltroFechaLimite ||
+      ccFiltroEstado
+    ),
+    ccLimpiarFiltrosExtra = () => {
+      (ccSetFiltroCategoria(""),
+        ccSetFiltroResponsable(""),
+        ccSetFiltroFechaLimite(""),
+        ccSetFiltroEstado(""));
+    },
+    aFiltrado = a.filter(
+      (o) =>
+        (!ccFiltroCategoria || o.categoria === ccFiltroCategoria) &&
+        (!ccFiltroFechaLimite || o.diaLimite === ccFiltroFechaLimite) &&
+        (!ccFiltroEstado ||
+          (ccFiltroEstado === "Activo"
+            ? o.activo !== false
+            : o.activo === false)) &&
+        (!ccFiltroResponsable ||
+          Object.entries(o.paisResponsables || {}).some(
+            ([pid, val]) =>
+              (!ccFiltroPais || Number(pid) === Number(ccFiltroPais)) &&
+              val === ccFiltroResponsable,
+          )),
+    );
   const toggleActivo = async (o) => {
     try {
       await a2("cierre_actividad", o.id, { ...o, activo: o.activo === false });
@@ -49557,7 +49608,8 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
   return c.jsxs(wt, {
     children: [
       c.jsx(Bt, {
-        left: a.length + " de " + aSinFiltro.length + " actividades de cierre mensual",
+        left:
+          aFiltrado.length + " de " + aSinFiltro.length + " actividades de cierre mensual",
         icon: "ti-list-details",
         right: c.jsxs("div", {
           style: { display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" },
@@ -49718,6 +49770,78 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
               }),
           ],
         }),
+      ccVista === "lista" &&
+        aSinFiltro.length > 0 &&
+        c.jsxs("div", {
+          style: {
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            padding: "0 14px 10px",
+            flexWrap: "wrap",
+          },
+          children: [
+            c.jsxs("select", {
+              value: ccFiltroCategoria,
+              onChange: (v) => ccSetFiltroCategoria(v.target.value),
+              style: { ...Pe, width: 170, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todas las categorías" }),
+                ccCategoriasDisponibles.map((v) =>
+                  c.jsx("option", { value: v, children: v }, v),
+                ),
+              ],
+            }),
+            c.jsxs("select", {
+              value: ccFiltroResponsable,
+              onChange: (v) => ccSetFiltroResponsable(v.target.value),
+              style: { ...Pe, width: 170, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todos los responsables" }),
+                ccResponsablesDisponibles.map((v) =>
+                  c.jsx("option", { value: v, children: v }, v),
+                ),
+              ],
+            }),
+            c.jsxs("select", {
+              value: ccFiltroFechaLimite,
+              onChange: (v) => ccSetFiltroFechaLimite(v.target.value),
+              style: { ...Pe, width: 170, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todas las fechas límite" }),
+                ccFechasLimiteDisponibles.map((v) =>
+                  c.jsx("option", { value: v, children: v }, v),
+                ),
+              ],
+            }),
+            c.jsxs("select", {
+              value: ccFiltroEstado,
+              onChange: (v) => ccSetFiltroEstado(v.target.value),
+              style: { ...Pe, width: 150, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todos los estados" }),
+                c.jsx("option", { value: "Activo", children: "Activo" }),
+                c.jsx("option", { value: "Inactivo", children: "Inactivo" }),
+              ],
+            }),
+            ccHayFiltrosExtra &&
+              c.jsxs(Te, {
+                sm: !0,
+                outline: !0,
+                onClick: ccLimpiarFiltrosExtra,
+                children: [c.jsx("i", { className: "ti ti-x" }), " Limpiar filtros"],
+              }),
+            c.jsxs("span", {
+              style: { fontSize: 11.5, color: y.text3, marginLeft: "auto" },
+              children: [
+                aFiltrado.length,
+                " de ",
+                a.length,
+                " actividad(es)",
+              ],
+            }),
+          ],
+        }),
       ccVista === "matriz" &&
         c.jsx("div", {
           style: { overflowX: "auto", padding: "0 14px 14px" },
@@ -49870,7 +49994,20 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                         children: "No hay actividades de cierre configuradas todavía",
                       }),
                     })
-                  : a.map((o) =>
+                  : aFiltrado.length === 0
+                  ? c.jsx("tr", {
+                      children: c.jsx("td", {
+                        colSpan: 8,
+                        style: {
+                          padding: "2rem",
+                          textAlign: "center",
+                          color: y.text3,
+                          fontSize: 13,
+                        },
+                        children: "Ninguna actividad coincide con los filtros seleccionados.",
+                      }),
+                    })
+                  : aFiltrado.map((o) =>
                       c.jsxs(
                         "tr",
                         {
