@@ -46475,6 +46475,8 @@ const t6 = {
     cierre_actividad: "cierre_actividades",
     cierre_actividades: "cierre_actividades",
     cierre_ejecucion: "cierre_ejecucion",
+    cierre_empresa: "cierre_empresas",
+    cierre_empresas: "cierre_empresas",
     cierre_nota: "cierre_notas_ejecutivas",
     cierre_notas_ejecutivas: "cierre_notas_ejecutivas",
     proceso: "procesos",
@@ -46872,7 +46874,7 @@ function u6() {
     m = ke.useCallback(async (H = !1) => {
       H || a(!0);
       try {
-        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd, ca, ce, cn] =
+        const [G, re, Ae, P, We, Ne, Ke, De, ye, ht, br, Jr, pd, ca, ce, cn, cemp] =
           await Promise.all([
             Lr("usuarios"),
             Lr("paises"),
@@ -46890,6 +46892,7 @@ function u6() {
             Lr("cierre_actividades"),
             Lr("cierre_ejecucion"),
             Lr("cierre_notas_ejecutivas"),
+            Lr("cierre_empresas"),
           ]);
         n({
           usuarios: G,
@@ -46908,6 +46911,7 @@ function u6() {
           cierre_actividades: ca,
           cierre_ejecucion: ce,
           cierre_notas_ejecutivas: cn,
+          cierre_empresas: cemp,
         });
       } catch (G) {
         console.error(G);
@@ -46938,6 +46942,16 @@ function u6() {
       return (
         ((G = r == null ? void 0 : r.auditores.find((re) => re.id === H)) ==
         null
+          ? void 0
+          : G.nombre) || "—"
+      );
+    },
+    eN = (H) => {
+      var G;
+      return (
+        ((G = r == null
+          ? void 0
+          : (r.cierre_empresas || []).find((re) => re.id === H)) == null
           ? void 0
           : G.nombre) || "—"
       );
@@ -47234,6 +47248,16 @@ function u6() {
           ...(V
             ? [
                 {
+                  id: "cierre_empresas",
+                  ic: "ti-building-skyscraper",
+                  lb: "Empresas",
+                  color: "#0d9488",
+                },
+              ]
+            : []),
+          ...(V
+            ? [
+                {
                   id: "cierre_catalogo",
                   ic: "ti-list-details",
                   lb: "Catálogo de Cierre",
@@ -47354,6 +47378,7 @@ function u6() {
       plan_trabajo: "Plan de Trabajo",
       informes: "Informes PDF",
       reportes: "Reportes",
+      cierre_empresas: "Empresas",
       cierre_catalogo: "Catálogo de Cierre",
       cierre: "Cierre Mensual",
       cierre_reporte: "Reporte de Avance",
@@ -47405,6 +47430,16 @@ function u6() {
           children: [
             c.jsx("i", { className: "ti ti-plus" }),
             " Agregar responsable",
+          ],
+        }),
+      cierre_empresas:
+        V &&
+        c.jsxs(Te, {
+          primary: !0,
+          onClick: () => d({ t: "cierre_empresa", id: null }),
+          children: [
+            c.jsx("i", { className: "ti ti-plus" }),
+            " Agregar empresa",
           ],
         }),
       procesos:
@@ -47872,10 +47907,25 @@ function u6() {
                     }),
                   isAdmin: V,
                 }),
+              s === "cierre_empresas" &&
+                c.jsx(CierreEmpresasPage, {
+                  db: r,
+                  pN: b,
+                  oE: (H) => d({ t: "cierre_empresa", id: H }),
+                  oD: (H, G) =>
+                    d({
+                      t: "_del",
+                      table: "cierre_empresas",
+                      id: H,
+                      name: G,
+                    }),
+                  isAdmin: V,
+                }),
               s === "cierre_catalogo" &&
                 c.jsx(CierreCatalogoPage, {
                   db: r,
                   pN: b,
+                  eN: eN,
                   oE: (H) => d({ t: "cierre_actividad", id: H }),
                   oD: (H, G) =>
                     d({
@@ -47981,6 +48031,7 @@ function u6() {
                 c.jsx(CierreMensualPage, {
                   db: r,
                   pN: b,
+                  eN: eN,
                   session: e,
                   isAdmin: V,
                   onSave: ne,
@@ -47993,6 +48044,7 @@ function u6() {
                   session: e,
                   isAdmin: V,
                   pN: b,
+                  eN: eN,
                   onSave: ne,
                   showToast: v,
                 }),
@@ -48894,21 +48946,39 @@ function g6({ db: e, oE: t, oD: r, isAdmin: n, pN: i, prN: a, hC: s }) {
                       }),
                       c.jsx(le, {
                         children:
-                          (o.paisesCierre || []).length === 0
+                          (o.paisesCierre || []).length === 0 &&
+                          (o.empresasCierre || []).length === 0
                             ? c.jsx("span", {
                                 style: { color: y.text3, fontSize: 11 },
                                 children: "—",
                               })
-                            : (o.paisesCierre || []).map((l) =>
-                                c.jsxs(
-                                  kl,
-                                  {
-                                    color: "#0d9488",
-                                    children: [Ze(i(l)), " ", i(l)],
-                                  },
-                                  l,
+                            : [
+                                ...(o.paisesCierre || []).map((l) =>
+                                  c.jsxs(
+                                    kl,
+                                    {
+                                      color: "#0d9488",
+                                      children: [Ze(i(l)), " ", i(l)],
+                                    },
+                                    "p" + l,
+                                  ),
                                 ),
-                              ),
+                                ...(o.empresasCierre || []).map((emId) => {
+                                  const em = (e.cierre_empresas || []).find(
+                                    (x2) => x2.id === emId,
+                                  );
+                                  return em
+                                    ? c.jsx(
+                                        kl,
+                                        {
+                                          color: "#8b5cf6",
+                                          children: em.nombre,
+                                        },
+                                        "e" + emId,
+                                      )
+                                    : null;
+                                }),
+                              ],
                       }),
                       c.jsx(le, { s: { fontWeight: 600 }, children: s(o.id) }),
                       c.jsx(le, { children: c.jsx(et, { label: o.estado }) }),
@@ -49263,8 +49333,120 @@ function InformeDestinatariosPage({ db: e, oE: t, oD: r, isAdmin: n }) {
     ],
   });
 }
-function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2, onDeleteDirecto: a3, showToast: s2 }) {
+function CierreEmpresasPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i }) {
+  const empresas = [...(e.cierre_empresas || [])].sort(
+    (o, l) => t(o.paisId).localeCompare(t(l.paisId)) || o.nombre.localeCompare(l.nombre),
+  );
+  return c.jsxs(wt, {
+    children: [
+      c.jsx(Bt, {
+        left: empresas.length + " empresa(s)",
+        icon: "ti-building-skyscraper",
+      }),
+      c.jsx("div", {
+        style: { padding: "8px 14px", fontSize: 11.5, color: y.text3 },
+        children:
+          "Cada empresa pertenece a un país y tiene su propio catálogo de actividades de cierre, independiente de las demás empresas. Desde aquí crea las empresas que vas a manejar en Cierre Mensual (ej. Kielsa Honduras y las nuevas empresas del mismo país).",
+      }),
+      c.jsx("div", {
+        style: { overflowX: "auto" },
+        children: c.jsxs("table", {
+          style: { width: "100%", borderCollapse: "collapse" },
+          children: [
+            c.jsx("thead", {
+              children: c.jsxs("tr", {
+                children: [
+                  c.jsx(ie, { children: "Empresa" }),
+                  c.jsx(ie, { children: "País" }),
+                  c.jsx(ie, { children: "Actividades" }),
+                  c.jsx(ie, { children: "Estado" }),
+                  i && c.jsx(ie, { children: "Acc." }),
+                ],
+              }),
+            }),
+            c.jsx("tbody", {
+              children:
+                empresas.length === 0
+                  ? c.jsx("tr", {
+                      children: c.jsx("td", {
+                        colSpan: 5,
+                        style: {
+                          padding: "2rem",
+                          textAlign: "center",
+                          color: y.text3,
+                          fontSize: 13,
+                        },
+                        children: "No hay empresas creadas todavía",
+                      }),
+                    })
+                  : empresas.map((o) =>
+                      c.jsxs(
+                        "tr",
+                        {
+                          style: {
+                            borderBottom: "1px solid " + y.border,
+                            opacity: o.estado === "Inactivo" ? 0.5 : 1,
+                          },
+                          children: [
+                            c.jsx(le, {
+                              s: { fontWeight: 700 },
+                              children: o.nombre || "—",
+                            }),
+                            c.jsxs(le, {
+                              children: [Ze(t(o.paisId)), " ", t(o.paisId)],
+                            }),
+                            c.jsx(le, {
+                              s: { fontSize: 12, color: y.text2 },
+                              children:
+                                (e.cierre_actividades || []).filter(
+                                  (v) => v.empresaId === o.id,
+                                ).length + " actividad(es)",
+                            }),
+                            c.jsx(le, {
+                              children: c.jsx(et, {
+                                label: o.estado || "Activo",
+                              }),
+                            }),
+                            i &&
+                              c.jsx(le, {
+                                children: c.jsxs("div", {
+                                  style: { display: "flex", gap: 3 },
+                                  children: [
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      onClick: () => r(o.id),
+                                      title: "Editar",
+                                      children: c.jsx("i", {
+                                        className: "ti ti-edit",
+                                      }),
+                                    }),
+                                    c.jsx(Te, {
+                                      sm: !0,
+                                      danger: !0,
+                                      onClick: () => n(o.id, o.nombre),
+                                      title: "Eliminar",
+                                      children: c.jsx("i", {
+                                        className: "ti ti-trash",
+                                      }),
+                                    }),
+                                  ],
+                                }),
+                              }),
+                          ],
+                        },
+                        o.id,
+                      ),
+                    ),
+            }),
+          ],
+        }),
+      }),
+    ],
+  });
+}
+function CierreCatalogoPage({ db: e, pN: t, eN: e0, oE: r, oD: n, isAdmin: i, onSave: a2, onDeleteDirecto: a3, showToast: s2 }) {
   const [ccFiltroPais, ccSetFiltroPais] = ke.useState(""),
+    [ccEmpresaId, ccSetEmpresaId] = ke.useState(""),
     [ccImportando, ccSetImportando] = ke.useState(!1),
     [ccVista, ccSetVista] = ke.useState("lista"),
     [ccMatrizCambios, ccSetMatrizCambios] = ke.useState({}),
@@ -49275,11 +49457,20 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
     [ccFiltroFechaLimite, ccSetFiltroFechaLimite] = ke.useState(""),
     [ccFiltroEstado, ccSetFiltroEstado] = ke.useState(""),
     ccFileRef = ke.useRef(null),
-    aSinFiltro = [...(e.cierre_actividades || [])].sort(
-      (o, l) =>
-        (o.categoria || "").localeCompare(l.categoria || "") ||
-        (o.orden || 0) - (l.orden || 0),
-    ),
+    ccEmpresasDelPais = ccFiltroPais
+      ? (e.cierre_empresas || []).filter(
+          (em) => em.paisId === ccFiltroPais && em.estado !== "Inactivo",
+        )
+      : [],
+    aSinFiltro = [...(e.cierre_actividades || [])]
+      .filter((o) =>
+        ccEmpresaId ? o.empresaId === ccEmpresaId : !o.empresaId,
+      )
+      .sort(
+        (o, l) =>
+          (o.categoria || "").localeCompare(l.categoria || "") ||
+          (o.orden || 0) - (l.orden || 0),
+      ),
     a = ccFiltroPais
       ? aSinFiltro.filter(
           (o) =>
@@ -49553,7 +49744,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
         conError = 0;
       for (const g of grupos.values()) {
         try {
-          const existente = (e.cierre_actividades || []).find(
+          const existente = aSinFiltro.find(
             (ea) =>
               (ea.categoria || "").trim().toLowerCase() ===
                 g.categoria.toLowerCase() &&
@@ -49572,6 +49763,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                 ...g.paisResponsables,
               },
               diaLimite: g.diaLimite || existente.diaLimite || "",
+              empresaId: ccEmpresaId || existente.empresaId || null,
               activo: g.activo,
             });
             actualizadas++;
@@ -49583,6 +49775,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
               orden: g.orden,
               paisResponsables: g.paisResponsables,
               diaLimite: g.diaLimite || "",
+              empresaId: ccEmpresaId || null,
               activo: g.activo,
             });
             creadas++;
@@ -49661,11 +49854,18 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
   const ccCambiosPendientes = Object.keys(ccMatrizCambios).length;
   const ccEliminarTodo = async () => {
     if (!aSinFiltro.length) return;
-    const confirmacion = window.prompt(
-      'Vas a ELIMINAR PERMANENTEMENTE las ' +
-        aSinFiltro.length +
-        ' actividades del catálogo de cierre (las 5 países quedarán sin checklist configurado). Esto no se puede deshacer.\n\nEscribe ELIMINAR para confirmar:',
-    );
+    const emp = ccEmpresaId
+        ? (e.cierre_empresas || []).find((em) => em.id === ccEmpresaId)
+        : null,
+      confirmacion = window.prompt(
+        'Vas a ELIMINAR PERMANENTEMENTE las ' +
+          aSinFiltro.length +
+          " actividades del catálogo " +
+          (emp
+            ? 'de la empresa "' + emp.nombre + '"'
+            : "general (compartido entre países sin empresa)") +
+          ". Esto no se puede deshacer.\n\nEscribe ELIMINAR para confirmar:",
+      );
     if (confirmacion !== "ELIMINAR") return;
     ccSetEliminandoTodo(!0);
     let ok = 0,
@@ -49700,7 +49900,10 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
           children: [
             c.jsxs("select", {
               value: ccFiltroPais,
-              onChange: (v) => ccSetFiltroPais(v.target.value ? parseInt(v.target.value) : ""),
+              onChange: (v) => {
+                (ccSetFiltroPais(v.target.value ? parseInt(v.target.value) : ""),
+                  ccSetEmpresaId(""));
+              },
               style: { ...Pe, width: 170, fontSize: 12 },
               children: [
                 c.jsx("option", { value: "", children: "Todos los países" }),
@@ -49713,6 +49916,26 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
                 ),
               ],
             }),
+            !!ccFiltroPais &&
+              c.jsxs("select", {
+                value: ccEmpresaId,
+                onChange: (v) =>
+                  ccSetEmpresaId(v.target.value ? parseInt(v.target.value) : ""),
+                style: { ...Pe, width: 190, fontSize: 12 },
+                children: [
+                  c.jsx("option", {
+                    value: "",
+                    children: "Catálogo general (sin empresa)",
+                  }),
+                  ccEmpresasDelPais.map((em) =>
+                    c.jsx(
+                      "option",
+                      { value: em.id, children: em.nombre },
+                      em.id,
+                    ),
+                  ),
+                ],
+              }),
             c.jsxs(Te, {
               outline: !0,
               onClick: ccDescargarExcel,
@@ -49775,8 +49998,14 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
       }),
       c.jsx("div", {
         style: { padding: "8px 14px", fontSize: 11.5, color: y.text3 },
-        children:
-          "Este catálogo es compartido por los 5 países. Cada actividad define quién es el responsable en cada país; desde 'Cierre Mensual' se genera el checklist del mes para el país seleccionado a partir de esta lista.",
+        children: ccEmpresaId
+          ? "Viendo el catálogo independiente de " +
+            ((e.cierre_empresas || []).find((em) => em.id === ccEmpresaId) || {})
+              .nombre +
+            ". Estas actividades son exclusivas de esta empresa."
+          : ccFiltroPais && ccEmpresasDelPais.length === 0
+          ? "Este país todavía no tiene empresas creadas. Ve a Empresas para crear la primera, o sigue usando este catálogo general compartido."
+          : "Catálogo general: cada actividad define quién es el responsable en cada país (para países sin empresas propias). Desde 'Cierre Mensual' se genera el checklist del mes.",
       }),
       i &&
         c.jsxs("div", {
@@ -49788,24 +50017,27 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
             flexWrap: "wrap",
           },
           children: [
-            c.jsxs(Te, {
-              sm: !0,
-              primary: ccVista === "lista",
-              outline: ccVista !== "lista",
-              onClick: () => ccSetVista("lista"),
-              children: [c.jsx("i", { className: "ti ti-list" }), " Vista lista"],
-            }),
-            c.jsxs(Te, {
-              sm: !0,
-              primary: ccVista === "matriz",
-              outline: ccVista !== "matriz",
-              onClick: () => ccSetVista("matriz"),
-              children: [
-                c.jsx("i", { className: "ti ti-table" }),
-                " Vista matriz (editar países)",
-              ],
-            }),
+            !ccEmpresaId &&
+              c.jsxs(Te, {
+                sm: !0,
+                primary: ccVista === "lista",
+                outline: ccVista !== "lista",
+                onClick: () => ccSetVista("lista"),
+                children: [c.jsx("i", { className: "ti ti-list" }), " Vista lista"],
+              }),
+            !ccEmpresaId &&
+              c.jsxs(Te, {
+                sm: !0,
+                primary: ccVista === "matriz",
+                outline: ccVista !== "matriz",
+                onClick: () => ccSetVista("matriz"),
+                children: [
+                  c.jsx("i", { className: "ti ti-table" }),
+                  " Vista matriz (editar países)",
+                ],
+              }),
             ccVista === "matriz" &&
+              !ccEmpresaId &&
               c.jsxs(c.Fragment, {
                 children: [
                   c.jsx("div", { style: { flex: 1 } }),
@@ -49854,7 +50086,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
               }),
           ],
         }),
-      ccVista === "lista" &&
+      (ccVista === "lista" || !!ccEmpresaId) &&
         aSinFiltro.length > 0 &&
         c.jsxs("div", {
           style: {
@@ -49927,6 +50159,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
           ],
         }),
       ccVista === "matriz" &&
+        !ccEmpresaId &&
         c.jsx("div", {
           style: { overflowX: "auto", padding: "0 14px 14px" },
           children: c.jsxs("table", {
@@ -50043,7 +50276,7 @@ function CierreCatalogoPage({ db: e, pN: t, oE: r, oD: n, isAdmin: i, onSave: a2
             ],
           }),
         }),
-      ccVista === "lista" &&
+      (ccVista === "lista" || !!ccEmpresaId) &&
         c.jsx("div", {
           style: { overflowX: "auto" },
           children: c.jsxs("table", {
@@ -50360,7 +50593,7 @@ function generarChecklistCierrePDF(paisNombre, mesLabel, items, totals) {
       ".pdf",
   );
 }
-function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, onDelete: a, showToast: s }) {
+function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSave: i, onDelete: a, showToast: s }) {
   const paisesActivos = e.paises.filter((v) => v.estado === "Activo"),
     cmAuditorPropio =
       !n && r && r.auditorId
@@ -50378,6 +50611,24 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     [paisId, setPaisId] = ke.useState(() =>
       paisesPermitidos[0] ? paisesPermitidos[0].id : null,
     ),
+    empresasDelPais = (e.cierre_empresas || []).filter(
+      (v) => v.paisId === paisId && v.estado !== "Inactivo",
+    ),
+    empresasPermitidas = n
+      ? empresasDelPais
+      : cmAuditorPropio
+        ? empresasDelPais.filter((v) =>
+            (cmAuditorPropio.empresasCierre || []).map(Number).includes(v.id),
+          )
+        : [],
+    [empresaId, setEmpresaId] = ke.useState(() =>
+      empresasPermitidas[0] ? empresasPermitidas[0].id : "",
+    ),
+    empresaIdEfectivo = empresasPermitidas.some((v) => v.id === empresaId)
+      ? empresaId
+      : empresasPermitidas[0]
+        ? empresasPermitidas[0].id
+        : "",
     [mes, setMes] = ke.useState(() => {
       const d2 = new Date();
       return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
@@ -50390,7 +50641,12 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     [fFechaHasta, setFFechaHasta] = ke.useState(""),
     [fSemaforo, setFSemaforo] = ke.useState(""),
     items = (e.cierre_ejecucion || [])
-      .filter((v) => v.paisId === paisId && v.mes === mes)
+      .filter(
+        (v) =>
+          v.paisId === paisId &&
+          v.mes === mes &&
+          (empresaIdEfectivo ? v.empresaId === empresaIdEfectivo : !v.empresaId),
+      )
       .sort(
         (v, w2) =>
           (v.categoria || "").localeCompare(w2.categoria || "") ||
@@ -50459,7 +50715,9 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
     catalogoActivo = (e.cierre_actividades || []).filter(
       (v) =>
         v.activo !== false &&
-        (v.paisResponsables || {})[paisId] !== "__NA__",
+        (empresaIdEfectivo
+          ? v.empresaId === empresaIdEfectivo
+          : !v.empresaId && (v.paisResponsables || {})[paisId] !== "__NA__"),
     ),
     faltantes = catalogoActivo.filter(
       (v) => !items.some((it) => it.actividadId === v.id),
@@ -50511,6 +50769,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
           await i("cierre_ejecucion", null, {
             actividadId: v.id,
             paisId: paisId,
+            empresaId: empresaIdEfectivo || null,
             mes: mes,
             categoria: v.categoria || "",
             actividad: v.actividad || "",
@@ -50545,12 +50804,12 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         s("Primero genera el checklist del mes", !0);
         return;
       }
-      generarChecklistCierrePDF(t(paisId), mesLabel, items, {
-        total,
-        completadas,
-        pendientes,
-        avance,
-      });
+      generarChecklistCierrePDF(
+        t(paisId) + (empresaIdEfectivo ? " - " + eN(empresaIdEfectivo) : ""),
+        mesLabel,
+        items,
+        { total, completadas, pendientes, avance },
+      );
     },
     eliminarTodo = async () => {
       if (!items.length) return;
@@ -50560,6 +50819,7 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
             items.length +
             " actividad(es) generadas para " +
             t(paisId) +
+            (empresaIdEfectivo ? " - " + eN(empresaIdEfectivo) : "") +
             " en " +
             mesLabel +
             "? Esto borra todo el progreso registrado (estados, fechas, observaciones) de ese mes y país. No se puede deshacer.",
@@ -50617,6 +50877,36 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         }),
       ],
     });
+  if (!n && empresasDelPais.length > 0 && empresasPermitidas.length === 0)
+    return c.jsxs("div", {
+      style: {
+        padding: "2.5rem 2rem",
+        textAlign: "center",
+        background: y.warningBg,
+        border: "1px solid " + y.warning,
+        borderRadius: 12,
+      },
+      children: [
+        c.jsx("i", {
+          className: "ti ti-building-off",
+          style: {
+            fontSize: 36,
+            color: y.warning,
+            display: "block",
+            marginBottom: 10,
+          },
+        }),
+        c.jsx("div", {
+          style: { fontWeight: 700, color: y.warning, marginBottom: 4 },
+          children: "Tu usuario no tiene ninguna empresa de cierre asignada en " + t(paisId),
+        }),
+        c.jsx("div", {
+          style: { color: y.text2, fontSize: 13 },
+          children:
+            "Contacta al administrador para que te asigne una empresa en Configuración → Auditores.",
+        }),
+      ],
+    });
   return c.jsxs(c.Fragment, {
     children: [
       c.jsxs("div", {
@@ -50630,7 +50920,9 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
         children: [
           c.jsx("select", {
             value: paisId ?? "",
-            onChange: (v) => setPaisId(parseInt(v.target.value)),
+            onChange: (v) => {
+              (setPaisId(parseInt(v.target.value)), setEmpresaId(""));
+            },
             style: { ...Pe, width: 200, fontSize: 12 },
             children: paisesPermitidos.map((v) =>
               c.jsxs(
@@ -50640,6 +50932,16 @@ function CierreMensualPage({ db: e, pN: t, session: r, isAdmin: n, onSave: i, on
               ),
             ),
           }),
+          empresasPermitidas.length > 0 &&
+            c.jsx("select", {
+              value: empresaIdEfectivo,
+              onChange: (v) =>
+                setEmpresaId(v.target.value ? parseInt(v.target.value) : ""),
+              style: { ...Pe, width: 190, fontSize: 12 },
+              children: empresasPermitidas.map((v) =>
+                c.jsx("option", { value: v.id, children: v.nombre }, v.id),
+              ),
+            }),
           c.jsx("input", {
             type: "month",
             value: mes,
@@ -51042,20 +51344,35 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s, sessio
       !rac6admin && rac6s && rac6s.auditorId
         ? e.auditores.find((v) => v.id === Number(rac6s.auditorId))
         : null,
-    rac6PaisesPermitidos = rac6admin
-      ? null
-      : (rac6AuditorPropio ? rac6AuditorPropio.paisesCierre || [] : []).map(
+    rac6EmpresasPermitidas = rac6admin
+      ? (e.cierre_empresas || []).map((v) => v.id)
+      : (rac6AuditorPropio ? rac6AuditorPropio.empresasCierre || [] : []).map(
           Number,
         ),
+    rac6PaisesPermitidos = rac6admin
+      ? null
+      : [
+          ...new Set([
+            ...(rac6AuditorPropio ? rac6AuditorPropio.paisesCierre || [] : []).map(
+              Number,
+            ),
+            ...(e.cierre_empresas || [])
+              .filter((em) => rac6EmpresasPermitidas.includes(em.id))
+              .map((em) => em.paisId),
+          ]),
+        ],
     [mes, setMes] = ke.useState(() => {
       const d2 = new Date();
       return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
     }),
-    items = (e.cierre_ejecucion || []).filter(
-      (v) =>
-        v.mes === mes &&
-        (rac6admin || (rac6PaisesPermitidos || []).includes(v.paisId)),
-    ),
+    items = (e.cierre_ejecucion || []).filter((v) => {
+      if (v.mes !== mes) return !1;
+      if (!(rac6admin || (rac6PaisesPermitidos || []).includes(v.paisId)))
+        return !1;
+      return v.empresaId
+        ? rac6admin || rac6EmpresasPermitidas.includes(v.empresaId)
+        : !0;
+    }),
     hoy = new Date().toISOString().split("T")[0],
     clasificar = (v) => {
       if (v.estado === "Completado") return "completado";
@@ -54436,6 +54753,7 @@ function b6({
       responsable: "responsables",
       destinatario: "informe_destinatarios",
       cierre_actividad: "cierre_actividades",
+      cierre_empresa: "cierre_empresas",
       proceso: "procesos",
       hallazgo: "hallazgos",
       plan: "planes",
@@ -54448,6 +54766,7 @@ function b6({
       responsable: "Responsable",
       destinatario: "Destinatario de Informe",
       cierre_actividad: "Actividad de Cierre",
+      cierre_empresa: "Empresa",
       proceso: "Proceso",
       hallazgo: "Hallazgo",
       plan: "Plan de acción",
@@ -54484,6 +54803,10 @@ function b6({
       }
       if (e === "cierre_actividad" && (!h.categoria || !h.actividad)) {
         alert("Categoría y actividad requeridas");
+        return;
+      }
+      if (e === "cierre_empresa" && !h.paisId) {
+        alert("Selecciona el país de la empresa");
         return;
       }
       if (["hallazgo", "plan"].includes(e) && !h.titulo) {
@@ -54904,6 +55227,88 @@ function b6({
                 ),
               }),
             }),
+            (r.cierre_empresas || []).length > 0 &&
+              c.jsx(me, {
+                label: "Empresas de Cierre (responsable por empresa)",
+                children: c.jsx("div", {
+                  style: { display: "flex", flexDirection: "column", gap: 6 },
+                  children: r.paises
+                    .filter((v) =>
+                      (r.cierre_empresas || []).some(
+                        (em) => em.paisId === v.id && em.estado !== "Inactivo",
+                      ),
+                    )
+                    .map((v) =>
+                      c.jsxs(
+                        "div",
+                        {
+                          children: [
+                            c.jsxs("div", {
+                              style: {
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: y.text3,
+                                marginBottom: 3,
+                              },
+                              children: [Ze(v.nombre), " ", v.nombre],
+                            }),
+                            c.jsx("div", {
+                              style: {
+                                display: "flex",
+                                flexWrap: "wrap",
+                                gap: 8,
+                                marginBottom: 4,
+                              },
+                              children: (r.cierre_empresas || [])
+                                .filter(
+                                  (em) =>
+                                    em.paisId === v.id && em.estado !== "Inactivo",
+                                )
+                                .map((em) =>
+                                  c.jsxs(
+                                    "label",
+                                    {
+                                      style: {
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 4,
+                                        fontSize: 12,
+                                        cursor: "pointer",
+                                        padding: "3px 8px",
+                                        borderRadius: 6,
+                                        background: "#f0fdfa",
+                                        border: "1px solid #99f6e4",
+                                      },
+                                      children: [
+                                        c.jsx("input", {
+                                          type: "checkbox",
+                                          checked: (h.empresasCierre || []).includes(
+                                            em.id,
+                                          ),
+                                          onChange: (b) => {
+                                            const S = h.empresasCierre || [];
+                                            k(
+                                              "empresasCierre",
+                                              b.target.checked
+                                                ? [...S, em.id]
+                                                : S.filter((E) => E !== em.id),
+                                            );
+                                          },
+                                        }),
+                                        em.nombre,
+                                      ],
+                                    },
+                                    em.id,
+                                  ),
+                                ),
+                            }),
+                          ],
+                        },
+                        v.id,
+                      ),
+                    ),
+                }),
+              }),
           ],
         }),
       e === "area" &&
@@ -54972,6 +55377,57 @@ function b6({
                   }),
                 }),
               ],
+            }),
+          ],
+        }),
+      e === "cierre_empresa" &&
+        c.jsxs(c.Fragment, {
+          children: [
+            c.jsxs(it, {
+              children: [
+                c.jsx(me, {
+                  label: "Nombre *",
+                  half: !0,
+                  children: c.jsx(Je, {
+                    value: h.nombre,
+                    onChange: (v) => k("nombre", v),
+                    placeholder: "Ej: Kielsa",
+                  }),
+                }),
+                c.jsx(me, {
+                  label: "País *",
+                  half: !0,
+                  children: c.jsxs(Xe, {
+                    value: h.paisId || "",
+                    onChange: (v) => k("paisId", parseInt(v)),
+                    children: [
+                      c.jsx("option", { value: "", children: "Selecciona..." }),
+                      r.paises.map((v) =>
+                        c.jsxs(
+                          "option",
+                          {
+                            value: v.id,
+                            children: [Ze(v.nombre), " ", v.nombre],
+                          },
+                          v.id,
+                        ),
+                      ),
+                    ],
+                  }),
+                }),
+              ],
+            }),
+            c.jsx(me, {
+              label: "Estado",
+              half: !0,
+              children: c.jsxs(Xe, {
+                value: h.estado || "Activo",
+                onChange: (v) => k("estado", v),
+                children: [
+                  c.jsx("option", { children: "Activo" }),
+                  c.jsx("option", { children: "Inactivo" }),
+                ],
+              }),
             }),
           ],
         }),
@@ -55122,6 +55578,46 @@ function b6({
       e === "cierre_actividad" &&
         c.jsxs(c.Fragment, {
           children: [
+            (r.cierre_empresas || []).length > 0 &&
+              c.jsx(me, {
+                label: "Empresa (catálogo independiente)",
+                children: c.jsxs(Xe, {
+                  value: h.empresaId || "",
+                  onChange: (v) => {
+                    const empId = v ? parseInt(v) : null,
+                      emp = (r.cierre_empresas || []).find(
+                        (x2) => x2.id === empId,
+                      );
+                    (k("empresaId", empId),
+                      emp && k("paisResponsables", { [emp.paisId]: h.paisResponsables ? h.paisResponsables[emp.paisId] || "" : "" }));
+                  },
+                  children: [
+                    c.jsx("option", {
+                      value: "",
+                      children: "— Catálogo general (compartido entre países)",
+                    }),
+                    (r.cierre_empresas || [])
+                      .filter((em) => em.estado !== "Inactivo")
+                      .map((em) =>
+                        c.jsxs(
+                          "option",
+                          {
+                            value: em.id,
+                            children: [
+                              Ze(s(em.paisId)),
+                              " ",
+                              em.nombre,
+                              " (",
+                              s(em.paisId),
+                              ")",
+                            ],
+                          },
+                          em.id,
+                        ),
+                      ),
+                  ],
+                }),
+              }),
             c.jsxs(it, {
               children: [
                 c.jsx(me, {
