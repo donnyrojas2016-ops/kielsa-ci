@@ -51365,13 +51365,21 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s, sessio
       const d2 = new Date();
       return d2.getFullYear() + "-" + String(d2.getMonth() + 1).padStart(2, "0");
     }),
+    [fPais, setFPais] = ke.useState(""),
+    [fEmpresa, setFEmpresa] = ke.useState(""),
     items = (e.cierre_ejecucion || []).filter((v) => {
       if (v.mes !== mes) return !1;
       if (!(rac6admin || (rac6PaisesPermitidos || []).includes(v.paisId)))
         return !1;
-      return v.empresaId
-        ? rac6admin || rac6EmpresasPermitidas.includes(v.empresaId)
-        : !0;
+      if (
+        !(v.empresaId
+          ? rac6admin || rac6EmpresasPermitidas.includes(v.empresaId)
+          : !0)
+      )
+        return !1;
+      if (fPais && v.paisId !== Number(fPais)) return !1;
+      if (fEmpresa && v.empresaId !== Number(fEmpresa)) return !1;
+      return !0;
     }),
     hoy = new Date().toISOString().split("T")[0],
     clasificar = (v) => {
@@ -51392,7 +51400,14 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s, sessio
       .filter(
         (v) => rac6admin || (rac6PaisesPermitidos || []).includes(v.id),
       ),
-    porPais = paisesActivos.map((v) => {
+    empresasParaFiltro = (e.cierre_empresas || [])
+      .filter((em) => em.estado === "Activo")
+      .filter((em) => rac6admin || rac6EmpresasPermitidas.includes(em.id))
+      .filter((em) => !fPais || em.paisId === Number(fPais))
+      .sort((a2, b2) => (a2.nombre || "").localeCompare(b2.nombre || "")),
+    porPais = paisesActivos
+      .filter((v) => !fPais || v.id === Number(fPais))
+      .map((v) => {
       const its = items.filter((x) => x.paisId === v.id),
         tot = its.length,
         comp = its.filter((x) => clasificar(x) === "completado").length;
@@ -51547,10 +51562,55 @@ function ReporteAvanceCierrePage({ db: e, pN: t, onSave: i, showToast: s, sessio
             onChange: (v) => setMes(v.target.value),
             style: { ...Pe, width: 160, fontSize: 13 },
           }),
+          c.jsxs("select", {
+            value: fPais,
+            onChange: (v) => {
+              setFPais(v.target.value);
+              setFEmpresa("");
+            },
+            style: { ...Pe, width: 170, fontSize: 12 },
+            children: [
+              c.jsx("option", { value: "", children: "Todos los países" }),
+              paisesActivos.map((v2) =>
+                c.jsx("option", { value: v2.id, children: v2.nombre }, v2.id),
+              ),
+            ],
+          }),
+          (e.cierre_empresas || []).length > 0 &&
+            c.jsxs("select", {
+              value: fEmpresa,
+              onChange: (v) => setFEmpresa(v.target.value),
+              style: { ...Pe, width: 190, fontSize: 12 },
+              children: [
+                c.jsx("option", { value: "", children: "Todas las empresas" }),
+                empresasParaFiltro.map((em) =>
+                  c.jsx("option", { value: em.id, children: em.nombre }, em.id),
+                ),
+              ],
+            }),
+          (fPais || fEmpresa) &&
+            c.jsxs(Te, {
+              sm: !0,
+              outline: !0,
+              onClick: () => {
+                setFPais("");
+                setFEmpresa("");
+              },
+              children: [c.jsx("i", { className: "ti ti-x" }), " Limpiar"],
+            }),
           c.jsxs("span", {
             style: { fontSize: 12, color: y.text3 },
             children: [
-              "Consolidado de los 5 países · ",
+              fPais
+                ? (paisesActivos.find((v2) => v2.id === Number(fPais)) || {})
+                    .nombre || ""
+                : "Consolidado de " + paisesActivos.length + " país(es)",
+              fEmpresa
+                ? " · " +
+                  ((empresasParaFiltro.find((em) => em.id === Number(fEmpresa)) ||
+                    {}).nombre || "")
+                : "",
+              " · ",
               total,
               " actividad(es) en ",
               mesLabel,
