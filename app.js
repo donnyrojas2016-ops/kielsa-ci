@@ -50640,6 +50640,7 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
     [fFechaDesde, setFFechaDesde] = ke.useState(""),
     [fFechaHasta, setFFechaHasta] = ke.useState(""),
     [fSemaforo, setFSemaforo] = ke.useState(""),
+    [evidenciaItem, setEvidenciaItem] = ke.useState(null),
     items = (e.cierre_ejecucion || [])
       .filter(
         (v) =>
@@ -50661,6 +50662,14 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
       if (v.estado === "En Proceso")
         return { estado: "azul", label: "En Proceso" };
       return { estado: "amarillo", label: "Pendiente" };
+    },
+    contarEvidencias = (val) => {
+      try {
+        const arr = JSON.parse(val || "[]");
+        return Array.isArray(arr) ? arr.length : 0;
+      } catch {
+        return 0;
+      }
     },
     categoriasDisponibles = [
       ...new Set(items.map((v) => v.categoria).filter(Boolean)),
@@ -51199,6 +51208,7 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
                           c.jsx(ie, { children: "Fecha realizado" }),
                           c.jsx(ie, { children: "Fecha límite" }),
                           c.jsx(ie, { children: "Observaciones" }),
+                          c.jsx(ie, { children: "Evidencia" }),
                           c.jsx(ie, { children: "Semáforo" }),
                         ],
                       }),
@@ -51303,6 +51313,40 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
                                 }),
                               }),
                               c.jsx(le, {
+                                children: (() => {
+                                  const nEv = contarEvidencias(v.evidencia);
+                                  return c.jsxs(
+                                    "button",
+                                    {
+                                      onClick: () => setEvidenciaItem(v),
+                                      style: {
+                                        display: "inline-flex",
+                                        alignItems: "center",
+                                        gap: 5,
+                                        fontSize: 11.5,
+                                        fontWeight: 600,
+                                        color: nEv ? y.success : y.text3,
+                                        background: nEv ? y.successBg : y.grayBg,
+                                        border:
+                                          "1px solid " +
+                                          (nEv ? y.success : y.border2),
+                                        borderRadius: 7,
+                                        padding: "0.3rem 0.55rem",
+                                        cursor: "pointer",
+                                      },
+                                      children: [
+                                        c.jsx("i", {
+                                          className:
+                                            "ti " +
+                                            (nEv ? "ti-paperclip" : "ti-paperclip"),
+                                        }),
+                                        nEv ? nEv + " archivo(s)" : "Adjuntar",
+                                      ],
+                                    },
+                                  );
+                                })(),
+                              }),
+                              c.jsx(le, {
                                 children: c.jsxs("span", {
                                   style: {
                                     display: "inline-flex",
@@ -51336,6 +51380,20 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
                 }),
               }),
       }),
+      evidenciaItem &&
+        c.jsx(Wa, {
+          title: "Evidencia — " + (evidenciaItem.actividad || ""),
+          onClose: () => setEvidenciaItem(null),
+          wide: !0,
+          children: c.jsx(l6, {
+            value: evidenciaItem.evidencia,
+            onChange: (v2) => {
+              actualizar(evidenciaItem, { evidencia: v2 });
+              setEvidenciaItem({ ...evidenciaItem, evidencia: v2 });
+            },
+            hallazgoId: "cierre-" + evidenciaItem.id,
+          }),
+        }),
     ],
   });
 }
