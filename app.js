@@ -50670,6 +50670,7 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
     }),
     [generando, setGenerando] = ke.useState(!1),
     [eliminandoTodo, setEliminandoTodo] = ke.useState(!1),
+    [quitandoHuerfanas, setQuitandoHuerfanas] = ke.useState(!1),
     [fCategoria, setFCategoria] = ke.useState(""),
     [fResponsable, setFResponsable] = ke.useState(""),
     [fFechaDesde, setFFechaDesde] = ke.useState(""),
@@ -50765,6 +50766,11 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
     ),
     faltantes = catalogoActivo.filter(
       (v) => !items.some((it) => it.actividadId === v.id),
+    ),
+    huerfanas = items.filter(
+      (v) =>
+        v.estado !== "Completado" &&
+        !(e.cierre_actividades || []).some((ca) => ca.id === v.actividadId),
     ),
     calcularFechaLimite = (plantilla, mesBase) => {
       if (!plantilla) return null;
@@ -50889,6 +50895,37 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
           " actividad(es)" +
           (conError ? ", " + conError + " con error" : ""),
         conError > 0 && ok === 0,
+      );
+    },
+    quitarHuerfanas = async () => {
+      if (!huerfanas.length) return;
+      if (
+        !window.confirm(
+          "¿Quitar " +
+            huerfanas.length +
+            " actividad(es) de este checklist que ya no existen en el Catálogo de Cierre? Las que ya están marcadas como Completadas no se tocan.",
+        )
+      )
+        return;
+      setQuitandoHuerfanas(!0);
+      let ok2 = 0,
+        conError2 = 0;
+      for (const it of huerfanas) {
+        try {
+          await a("cierre_ejecucion", it.id);
+          ok2++;
+        } catch (err) {
+          conError2++;
+          console.error("Error quitando actividad huérfana:", it.id, err);
+        }
+      }
+      setQuitandoHuerfanas(!1);
+      s(
+        "Quitadas " +
+          ok2 +
+          " actividad(es)" +
+          (conError2 ? ", " + conError2 + " con error" : ""),
+        conError2 > 0 && ok2 === 0,
       );
     };
   if (!n && paisesPermitidos.length === 0)
@@ -51031,6 +51068,48 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
             }),
         ],
       }),
+      huerfanas.length > 0 &&
+        c.jsxs("div", {
+          style: {
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 10,
+            padding: "0.7rem 1rem",
+            marginBottom: 14,
+            background: y.warningBg,
+            border: "1px solid " + y.warning,
+            borderRadius: 10,
+          },
+          children: [
+            c.jsxs("span", {
+              style: { fontSize: 12.5, color: y.text2 },
+              children: [
+                c.jsx("i", {
+                  className: "ti ti-alert-triangle",
+                  style: { color: y.warning, marginRight: 6 },
+                }),
+                huerfanas.length +
+                  " actividad(es) de este checklist ya no existen en el Catálogo de Cierre (fueron eliminadas allá). No se borran solas para no perder progreso — quítalas aquí si ya no aplican.",
+              ],
+            }),
+            c.jsxs(Te, {
+              sm: !0,
+              disabled: quitandoHuerfanas,
+              onClick: quitarHuerfanas,
+              children: [
+                c.jsx("i", {
+                  className: quitandoHuerfanas ? "ti ti-loader" : "ti ti-trash",
+                  style: quitandoHuerfanas
+                    ? { animation: "sp 1s linear infinite" }
+                    : undefined,
+                }),
+                quitandoHuerfanas ? " Quitando..." : " Quitar del checklist",
+              ],
+            }),
+          ],
+        }),
       c.jsx("div", {
         style: {
           display: "grid",
