@@ -57434,6 +57434,7 @@ function C6({
     [h, _] = ke.useState(""),
     [k, w] = ke.useState(!1),
     [m, v] = ke.useState(null),
+    [sincronizando, setSincronizando] = ke.useState(!1),
     b = i.rol === "auditor",
     S = i.auditorId ? Number(i.auditorId) : null,
     E = (e.planes_trabajo || []).filter(
@@ -57592,6 +57593,70 @@ function C6({
           nuevas.length +
           " actividad(es)",
       );
+    },
+    sincronizarResponsables = async () => {
+      const procesosPorId = {};
+      e.procesos.forEach((pr) => {
+        procesosPorId[pr.id] = pr;
+      });
+      const itemsDelMes = (e.planes_trabajo || []).filter((v) => v.mes === d),
+        cambios = [];
+      itemsDelMes.forEach((item) => {
+        const proceso = procesosPorId[item.procesoId];
+        if (!proceso || proceso.activo === false) return;
+        const paisAuditores = proceso.paisAuditores || {},
+          auditorIds = proceso.auditorIds || [],
+          auditorCorrecto = paisAuditores[item.paisId] || auditorIds[0];
+        if (!auditorCorrecto) return;
+        const frecuenciaCorrecta = proceso.frecuencia || item.frecuencia;
+        if (
+          Number(auditorCorrecto) !== Number(item.auditorId) ||
+          frecuenciaCorrecta !== item.frecuencia
+        )
+          cambios.push({
+            item: item,
+            auditorCorrecto: Number(auditorCorrecto),
+            frecuenciaCorrecta: frecuenciaCorrecta,
+          });
+      });
+      if (!cambios.length) {
+        l("Ya está todo sincronizado con Procesos para " + d);
+        return;
+      }
+      if (
+        !window.confirm(
+          "¿Sincronizar " +
+            cambios.length +
+            " actividad(es) de " +
+            d +
+            " con el responsable/frecuencia actual de cada proceso? Esto NO borra el estado, observaciones ni evidencia ya registrados — solo actualiza a quién está asignada la actividad.",
+        )
+      )
+        return;
+      setSincronizando(!0);
+      let ok = 0,
+        conError = 0;
+      for (const { item, auditorCorrecto, frecuenciaCorrecta } of cambios) {
+        try {
+          await s("plan_trabajo", item.id, {
+            ...item,
+            auditorId: auditorCorrecto,
+            frecuencia: frecuenciaCorrecta,
+          });
+          ok++;
+        } catch (err) {
+          conError++;
+          console.error("Error sincronizando actividad:", item.id, err);
+        }
+      }
+      setSincronizando(!1);
+      l(
+        "Sincronizadas " +
+          ok +
+          " actividad(es)" +
+          (conError ? ", " + conError + " con error" : ""),
+        conError > 0 && ok === 0,
+      );
     };
   return c.jsxs(c.Fragment, {
     children: [
@@ -57656,6 +57721,23 @@ function C6({
               children: [
                 c.jsx("i", { className: "ti ti-calendar-x" }),
                 " Quitar domingos",
+              ],
+            }),
+          a &&
+            c.jsxs(Te, {
+              onClick: sincronizarResponsables,
+              outline: !0,
+              disabled: sincronizando,
+              title:
+                "Actualiza el responsable y la frecuencia de las actividades ya generadas este mes según lo asignado ahora en Procesos, sin borrar estado, observaciones ni evidencia",
+              children: [
+                c.jsx("i", {
+                  className: sincronizando ? "ti ti-loader" : "ti ti-refresh",
+                  style: sincronizando
+                    ? { animation: "sp 1s linear infinite" }
+                    : undefined,
+                }),
+                sincronizando ? " Sincronizando..." : " Sincronizar con Procesos",
               ],
             }),
           a &&
