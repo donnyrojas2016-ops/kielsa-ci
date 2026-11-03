@@ -50593,6 +50593,41 @@ function generarChecklistCierrePDF(paisNombre, mesLabel, items, totals) {
       ".pdf",
   );
 }
+function CMCampoAuto({ value, onSave, placeholder, style }) {
+  const [val, setVal] = ke.useState(value || ""),
+    valRef = ke.useRef(value || ""),
+    enFocoRef = ke.useRef(!1),
+    timerRef = ke.useRef(null);
+  ke.useEffect(() => {
+    if (!enFocoRef.current) {
+      setVal(value || "");
+      valRef.current = value || "";
+    }
+  }, [value]);
+  const guardarSiCambio = () => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    onSave(valRef.current);
+  };
+  return c.jsx("input", {
+    type: "text",
+    value: val,
+    placeholder: placeholder,
+    style: style,
+    onFocus: () => {
+      enFocoRef.current = !0;
+    },
+    onChange: (ev) => {
+      const nuevo = ev.target.value;
+      (setVal(nuevo), (valRef.current = nuevo));
+      if (timerRef.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => onSave(valRef.current), 800);
+    },
+    onBlur: () => {
+      enFocoRef.current = !1;
+      guardarSiCambio();
+    },
+  });
+}
 function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSave: i, onDelete: a, showToast: s }) {
   const paisesActivos = e.paises.filter((v) => v.estado === "Activo"),
     cmAuditorPropio =
@@ -51303,11 +51338,10 @@ function CierreMensualPage({ db: e, pN: t, eN: eN, session: r, isAdmin: n, onSav
                                 }),
                               }),
                               c.jsx(le, {
-                                children: c.jsx("input", {
-                                  type: "text",
-                                  value: v.observaciones || "",
-                                  onChange: (ev) =>
-                                    actualizar(v, { observaciones: ev.target.value }),
+                                children: c.jsx(CMCampoAuto, {
+                                  value: v.observaciones,
+                                  onSave: (nuevo) =>
+                                    actualizar(v, { observaciones: nuevo }),
                                   placeholder: "Notas…",
                                   style: { ...Pe, width: 160, fontSize: 12, padding: "0.3rem 0.5rem" },
                                 }),
