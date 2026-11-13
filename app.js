@@ -47953,6 +47953,8 @@ function u6() {
                     r.hallazgos.filter(
                       (G) => G.procesoId === H && G.estado !== "Cerrado",
                     ).length,
+                  onSave: ne,
+                  showToast: v,
                 }),
               s === "hallazgos" &&
                 c.jsx(_6, {
@@ -52497,11 +52499,50 @@ function v6(e, t, r) {
     alert("Error: " + n.message);
   }
 }
-function y6({ db: e, session: j6s, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s }) {
+function y6({ db: e, session: j6s, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s, onSave: onSaveProceso, showToast: showToastProceso }) {
   const [o, l] = ke.useState(""),
     [u, f] = ke.useState(""),
     [d, p] = ke.useState(""),
-    [g, x] = ke.useState("compacta");
+    [g, x] = ke.useState("compacta"),
+    [renumerando, setRenumerando] = ke.useState(!1),
+    renumerar = async () => {
+      const ordenados = [...j6base].sort((a1, a2) => (a1.id || 0) - (a2.id || 0)),
+        cambios = [];
+      ordenados.forEach((p2, idx) => {
+        const nuevo = "PR-" + String(idx + 1).padStart(2, "0");
+        if (p2.codigo !== nuevo) cambios.push({ proceso: p2, nuevo: nuevo });
+      });
+      if (!cambios.length) {
+        showToastProceso && showToastProceso("Los códigos ya están en orden, sin brincos");
+        return;
+      }
+      if (
+        !window.confirm(
+          "¿Renumerar " +
+            cambios.length +
+            " proceso(s) para que los códigos queden correlativos (PR-01, PR-02, ...) sin saltos? Esto solo cambia el código, nada más del proceso.",
+        )
+      )
+        return;
+      setRenumerando(!0);
+      let ok = 0,
+        conError = 0;
+      for (const { proceso, nuevo } of cambios) {
+        try {
+          await onSaveProceso("proceso", proceso.id, { ...proceso, codigo: nuevo });
+          ok++;
+        } catch (err) {
+          conError++;
+          console.error("Error renumerando proceso:", proceso.id, err);
+        }
+      }
+      setRenumerando(!1);
+      showToastProceso &&
+        showToastProceso(
+          "Renumerados " + ok + " proceso(s)" + (conError ? ", " + conError + " con error" : ""),
+          conError > 0 && ok === 0,
+        );
+    };
   let j6base = e.procesos.filter((_) => _.activo !== false);
   if (j6s && j6s.rol === "auditor" && j6s.auditorId) {
     const j6a = Number(j6s.auditorId);
@@ -52626,6 +52667,33 @@ function y6({ db: e, session: j6s, oE: t, oD: r, isAdmin: n, pN: i, aN: a, hC: s
                   " Excel",
                 ],
               }),
+              n &&
+                c.jsxs("button", {
+                  onClick: renumerar,
+                  disabled: renumerando,
+                  title: "Vuelve a numerar los códigos PR-01, PR-02... en orden, sin los saltos que dejan los procesos eliminados",
+                  style: {
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    fontSize: 11,
+                    padding: "0.28rem 0.65rem",
+                    borderRadius: 6,
+                    border: "1px solid " + y.border2,
+                    background: y.surface,
+                    cursor: "pointer",
+                    color: y.primary,
+                    fontFamily: "inherit",
+                    fontWeight: 600,
+                  },
+                  children: [
+                    c.jsx("i", {
+                      className: "ti " + (renumerando ? "ti-loader" : "ti-sort-ascending-numbers"),
+                      style: renumerando ? { fontSize: 13, animation: "sp 1s linear infinite" } : { fontSize: 13 },
+                    }),
+                    renumerando ? " Renumerando..." : " Renumerar códigos",
+                  ],
+                }),
               c.jsx("div", {
                 style: {
                   display: "flex",
