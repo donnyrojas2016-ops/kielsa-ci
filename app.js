@@ -58801,6 +58801,7 @@ function C6({
           session: i,
           onSave: s,
           onClose: () => v(null),
+          onGenerarHallazgo: onGH,
         }),
     ],
   });
@@ -59027,6 +59028,7 @@ function InformeActividadModal({
   session: sesion,
   onSave: guardar,
   onClose: cerrar,
+  onGenerarHallazgo: onGH,
 }) {
   const parsedoPT = parsearObservacionActividad(itemActividad.observacion),
     [revision, setRevision] = ke.useState(
@@ -59199,6 +59201,27 @@ function InformeActividadModal({
         alert("Error: " + err.message);
       }
       setEnviando(!1);
+    },
+    generarHallazgoDesdeInforme = async () => {
+      try {
+        await guardar("plan_trabajo", itemActividad.id, {
+          ...itemActividad,
+          observacion: textoCombinado,
+        });
+      } catch (err) {
+        alert("Error al guardar el seguimiento: " + err.message);
+        return;
+      }
+      onGH &&
+        onGH({
+          fecha: itemActividad.fechaProgramada || fn(),
+          procesoId: itemActividad.procesoId,
+          paisId: itemActividad.paisId,
+          auditorId: itemActividad.auditorId,
+          titulo: nombreProceso + " — " + nombrePais,
+          condicion: resultado || revision || "",
+        });
+      cerrar();
     };
   return c.jsxs(Wa, {
     title: "Enviar informe — " + nombreProceso,
@@ -59395,6 +59418,14 @@ function InformeActividadModal({
         style: { display: "flex", gap: 8, justifyContent: "flex-end" },
         children: [
           c.jsx(Te, { onClick: cerrar, children: "Cancelar" }),
+          onGH &&
+            c.jsxs(Te, {
+              onClick: generarHallazgoDesdeInforme,
+              children: [
+                c.jsx("i", { className: "ti ti-alert-triangle" }),
+                " Generar hallazgo",
+              ],
+            }),
           c.jsxs(Te, {
             onClick: descargarPDF,
             disabled: generandoPdf,
