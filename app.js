@@ -57503,6 +57503,7 @@ function C6({
     [k, w] = ke.useState(!1),
     [m, v] = ke.useState(null),
     [sincronizando, setSincronizando] = ke.useState(!1),
+    [eliminandoTodoPT, setEliminandoTodoPT] = ke.useState(!1),
     b = i.rol === "auditor",
     S = i.auditorId ? Number(i.auditorId) : null,
     E = (e.planes_trabajo || []).filter(
@@ -57768,6 +57769,44 @@ function C6({
           !0,
         );
       }
+    },
+    eliminarTodoPT = async () => {
+      if (!E.length) {
+        l("No hay actividades que eliminar en " + d);
+        return;
+      }
+      if (
+        !window.confirm(
+          "¿Eliminar las " +
+            E.length +
+            " actividad(es) del plan de trabajo que se ven en pantalla (" +
+            d +
+            (g ? ", auditor filtrado" : "") +
+            (h ? ", país filtrado" : "") +
+            ")? Esto borra todo el progreso registrado (estados, observaciones, evidencia). No se puede deshacer.",
+        )
+      )
+        return;
+      setEliminandoTodoPT(!0);
+      let ok = 0,
+        conError = 0;
+      for (const it of E) {
+        try {
+          await o("planes_trabajo", it.id);
+          ok++;
+        } catch (err) {
+          conError++;
+          console.error("Error eliminando actividad del plan de trabajo:", it.id, err);
+        }
+      }
+      setEliminandoTodoPT(!1);
+      l(
+        "Eliminadas " +
+          ok +
+          " actividad(es)" +
+          (conError ? ", " + conError + " con error" : ""),
+        conError > 0 && ok === 0,
+      );
     };
   return c.jsxs(c.Fragment, {
     children: [
@@ -57862,8 +57901,27 @@ function C6({
             }),
           a &&
             c.jsxs(Te, {
+              onClick: eliminarTodoPT,
+              danger: !0,
+              outline: !0,
+              disabled: eliminandoTodoPT,
+              title:
+                "Elimina todas las actividades del plan de trabajo que se ven en pantalla con los filtros actuales",
+              children: [
+                c.jsx("i", {
+                  className: eliminandoTodoPT ? "ti ti-loader" : "ti ti-trash",
+                  style: eliminandoTodoPT
+                    ? { animation: "sp 1s linear infinite" }
+                    : undefined,
+                }),
+                eliminandoTodoPT ? " Eliminando..." : " Eliminar todo",
+              ],
+            }),
+          a &&
+            c.jsxs(Te, {
               onClick: () => w(!0),
               primary: !0,
+              title: "Agrega las actividades que falten según Procesos, sin borrar lo ya generado",
               children: [
                 c.jsx("i", { className: "ti ti-wand" }),
                 " Generar plan del mes",
