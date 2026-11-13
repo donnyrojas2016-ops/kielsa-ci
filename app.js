@@ -48002,6 +48002,8 @@ function u6() {
                   onSave: ne,
                   onDelete: X,
                   showToast: v,
+                  onGenerarHallazgo: (pre) =>
+                    d({ t: "hallazgo", id: null, prefill: pre }),
                 }),
               s === "informes" &&
                 c.jsx(B6, {
@@ -48201,6 +48203,7 @@ function u6() {
           arN: C,
           rsN: A,
           autoH: K,
+          prefill: f.prefill,
         }),
       l &&
         c.jsxs("div", {
@@ -53232,6 +53235,73 @@ function w6(e, t, r, n, i, a, s) {
       l.text("Pág. " + I + " / " + O, u - 12, f - 4, { align: "right" }));
   l.save("KielsaCI_Informe_" + (e.codigo || "H") + "_" + fn() + ".pdf");
 }
+function enviarInformeHallazgoCorreo(e, t, r, n, i, a, s) {
+  const destActivos = (t.informe_destinatarios || []).filter(
+      (d) => d.activo !== false,
+    ),
+    destPara = destActivos
+      .filter((d) => d.tipo !== "cc")
+      .map((d) => d.email)
+      .filter(Boolean),
+    destCc = destActivos
+      .filter((d) => d.tipo === "cc")
+      .map((d) => d.email)
+      .filter(Boolean);
+  if (!destPara.length) {
+    alert(
+      'No hay destinatarios "Para" configurados. Ve a Configuración → Destinatarios Informe para agregarlos.',
+    );
+    return;
+  }
+  const asunto =
+      "Hallazgo — " +
+      (e.codigo || "") +
+      " — " +
+      i(e.procesoId) +
+      " — " +
+      r(e.paisId),
+    lineas = [
+      "Buen día:",
+      "",
+      "Se generó el siguiente hallazgo de auditoría:",
+      "",
+      "Código: " + (e.codigo || ""),
+      "País: " + r(e.paisId),
+      "Proceso: " + i(e.procesoId),
+      "Auditor: " + n(e.auditorId),
+      "Riesgo: " + (e.riesgo || ""),
+      "Fecha: " + (e.fecha || ""),
+      "Título: " + (e.titulo || ""),
+      "",
+      "Condición: " + (e.condicion || e.descripcion || "(sin detalle)"),
+      "Criterio: " + (e.criterio || "(sin detalle)"),
+      "Causa: " + (e.causa || "(sin detalle)"),
+      "Efecto: " + (e.efecto || "(sin detalle)"),
+      "Recomendación: " + (e.recomendacion || "(sin detalle)"),
+    ];
+  e.respuestaDueno &&
+    lineas.push(
+      "",
+      "Respuesta del dueño del proceso: " + e.respuestaDueno,
+      "Fecha compromiso: " + (e.fechaCompromiso || ""),
+    );
+  lineas.push(
+    "",
+    'Adjunta a este correo el PDF del informe (botón "Generar informe PDF") antes de enviarlo.',
+    "",
+    "Saludos,",
+  );
+  const cuerpo = lineas.join("\n"),
+    mailto =
+      "mailto:" +
+      destPara.join(",") +
+      (destCc.length ? "?cc=" + destCc.join(",") + "&" : "?") +
+      "subject=" +
+      encodeURIComponent(asunto) +
+      "&body=" +
+      encodeURIComponent(cuerpo);
+  window.location.href = mailto;
+}
 function _6({
   db: e,
   session: t,
@@ -53713,6 +53783,36 @@ function _6({
                                         },
                                         children: c.jsx("i", {
                                           className: "ti ti-file-type-pdf",
+                                          style: { fontSize: 13 },
+                                        }),
+                                      }),
+                                      c.jsx("button", {
+                                        onClick: () =>
+                                          enviarInformeHallazgoCorreo(
+                                            w,
+                                            e,
+                                            o,
+                                            l,
+                                            u,
+                                            f,
+                                            d,
+                                          ),
+                                        title: "Enviar informe por correo",
+                                        style: {
+                                          width: 28,
+                                          height: 28,
+                                          border:
+                                            "1px solid " + y.primary + "40",
+                                          borderRadius: 6,
+                                          background: y.primaryLight,
+                                          cursor: "pointer",
+                                          display: "flex",
+                                          alignItems: "center",
+                                          justifyContent: "center",
+                                          color: y.primary,
+                                        },
+                                        children: c.jsx("i", {
+                                          className: "ti ti-mail",
                                           style: { fontSize: 13 },
                                         }),
                                       }),
@@ -55043,6 +55143,7 @@ function b6({
   arN: u,
   rsN: f,
   autoH: d,
+  prefill: pf,
 }) {
   const p = {
       usuario: "usuarios",
@@ -55071,7 +55172,7 @@ function b6({
       plan: "Plan de acción",
       proyecto: "Proyecto",
     },
-    x = t ? r[p[e]].find((v) => v.id === t) || {} : {},
+    x = t ? r[p[e]].find((v) => v.id === t) || {} : pf || {},
     [h, _] = ke.useState({ ...x }),
     k = (v, b) => _((S) => ({ ...S, [v]: b })),
     [procBusq, setProcBusq] = ke.useState(() => {
@@ -57492,6 +57593,7 @@ function C6({
   onSave: s,
   onDelete: o,
   showToast: l,
+  onGenerarHallazgo: onGH,
 }) {
   const [u, f] = ke.useState(!1),
     [d, p] = ke.useState(() => {
@@ -58613,6 +58715,21 @@ function C6({
                                             " Redactar",
                                           ],
                                         }),
+                                        onGH &&
+                                          c.jsx(Te, {
+                                            sm: !0,
+                                            title: "Generar hallazgo",
+                                            onClick: () =>
+                                              onGH({
+                                                fecha: fn(),
+                                                procesoId: ee.procesoId,
+                                                paisId: ee.paisId,
+                                                auditorId: ee.auditorId,
+                                              }),
+                                            children: c.jsx("i", {
+                                              className: "ti ti-alert-triangle",
+                                            }),
+                                          }),
                                         a &&
                                           c.jsx(Te, {
                                             sm: !0,
