@@ -57657,6 +57657,49 @@ function C6({
           (conError ? ", " + conError + " con error" : ""),
         conError > 0 && ok === 0,
       );
+    },
+    exportarTodosExcel = () => {
+      if (!E.length) {
+        l("No hay actividades para exportar en " + d);
+        return;
+      }
+      try {
+        const ordenadas = [...E].sort(
+            (a1, a2) =>
+              r(a1.auditorId).localeCompare(r(a2.auditorId)) ||
+              (a1.fechaProgramada || "").localeCompare(a2.fechaProgramada || ""),
+          ),
+          filas = ordenadas.map((U) => ({
+            Auditor: r(U.auditorId),
+            País: t(U.paisId),
+            Proceso: n(U.procesoId),
+            Frecuencia: U.frecuencia || "",
+            "Fecha programada": U.fechaProgramada || "",
+            Estado: U.estado || "",
+            Observación: U.observacion || "",
+          })),
+          wb = bt.book_new(),
+          ws = bt.json_to_sheet(filas);
+        ((ws["!cols"] = [
+          { wch: 22 },
+          { wch: 14 },
+          { wch: 40 },
+          { wch: 12 },
+          { wch: 16 },
+          { wch: 12 },
+          { wch: 40 },
+        ]),
+          bt.book_append_sheet(wb, ws, "Plan de Trabajo"),
+          Ll(wb, "PlanTrabajo_Todos_" + d + ".xlsx"));
+        l("Excel descargado ✓");
+      } catch (err) {
+        console.error("Error exportando Excel de todos los auditores:", err);
+        l(
+          "No se pudo generar el Excel: " +
+            (err && err.message ? err.message : String(err)),
+          !0,
+        );
+      }
     };
   return c.jsxs(c.Fragment, {
     children: [
@@ -57710,6 +57753,15 @@ function C6({
               }),
               " ",
               u ? "Tabla" : "Calendario",
+            ],
+          }),
+          c.jsxs(Te, {
+            onClick: exportarTodosExcel,
+            outline: !0,
+            title: "Descarga en un solo Excel el plan de trabajo de todos los auditores que se ven en pantalla",
+            children: [
+              c.jsx("i", { className: "ti ti-file-spreadsheet", style: { color: y.success } }),
+              " Descargar Excel",
             ],
           }),
           a &&
